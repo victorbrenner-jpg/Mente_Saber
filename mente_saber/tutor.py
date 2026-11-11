@@ -1,6 +1,5 @@
 import os
-import base64
-from typing import Optional
+import traceback
 
 from google import genai
 from google.genai import types
@@ -52,13 +51,35 @@ PREFERRED_TEXT_MODELS = (
     "gemini-2.5-flash",
 )
 
-# Modelo específico para conversão de texto em voz.
-TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-3.8-flash-tts").strip()
+# O modelo TTS é lido em tempo de execução, inclusive de st.secrets no Streamlit Cloud.
 
 
 # ============================================================
 # CONFIGURAÇÃO E DESCOBERTA DO MODELO
 # ============================================================
+
+def _get_setting(name: str, default: str = "") -> str:
+    """
+    Lê uma configuração primeiro das variáveis de ambiente e depois
+    de st.secrets. Isso é importante no Streamlit Cloud: Secrets não são,
+    necessariamente, variáveis disponíveis em os.getenv().
+    """
+    value = os.getenv(name, "").strip()
+    if value:
+        return value
+
+    try:
+        import streamlit as st
+
+        secret_value = st.secrets.get(name, default)
+        if secret_value is not None:
+            return str(secret_value).strip()
+    except Exception:
+        # Fora do Streamlit ou sem Secrets configurados.
+        pass
+
+    return str(default or "").strip()
+
 
 def _normalize_model_name(model_name: str) -> str:
     """Remove o prefixo 'models/' e espaços do nome do modelo."""
@@ -71,7 +92,7 @@ def _get_valid_model(client) -> str:
     suporte à operação generateContent.
     """
     configured_model = _normalize_model_name(
-        os.getenv("GEMINI_MODEL", "")
+        _get_setting("GEMINI_MODEL", "gemini-3.8-flash")
     )
 
     available_models = set()
@@ -111,7 +132,7 @@ def _get_valid_model(client) -> str:
 
 def _get_api_key() -> str:
     """Lê e valida a chave da API Gemini."""
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = _get_setting("GEMINI_API_KEY", "")
 
     if not api_key or api_key == "COLE_SUA_CHAVE_AQUI":
         return ""
@@ -335,6 +356,7 @@ QUALIDADE E SEGURANÇA:
     try:
         client = genai.Client(api_key=api_key)
         model = _get_valid_model(client)
+        print(f'Mente Saber: usando modelo de texto Gemini: {model}')
 
         response = client.models.generate_content(
             model=model,
@@ -357,11 +379,15 @@ QUALIDADE E SEGURANÇA:
         return content.strip(), "ai"
 
     except Exception as e:
-        # O detalhe técnico fica no log do servidor, não na tela do aluno.
-        print(
-            f"Erro ao acessar a API Gemini "
-            f"({type(e).__name__}): {e}"
-        )
+        # Diagnóstico completo no log do Streamlit Cloud.
+        # Nunca imprima a chave da API.
+        print("\\n" + "=" * 70)
+        print("ERRO REAL AO ACESSAR A API GEMINI (RESPOSTA DE TEXTO)")
+        print("TIPO:", type(e).__name__)
+        print("MENSAGEM:", str(e))
+        print("MODELO CONFIGURADO:", _get_setting("GEMINI_MODEL", "(não definido)"))
+        traceback.print_exc()
+        print("=" * 70 + "\\n")
 
         mensagem = str(e).upper()
 
@@ -412,11 +438,11 @@ QUALIDADE E SEGURANÇA:
 
 def generate_audio_for_avatar(text, avatar=None):
     """
-    Converte o texto em áudio usando um modelo TTS dedicado.
+    Converte o texto em áudio usando o modelo Gemini TTS.
     Retorna os bytes do áudio ou None se a geração falhar.
 
-    Esta função usa a API Interactions para TTS do Gemini 3.8.
-    O pacote google-genai precisa estar atualizado.
+    A geração de áudio é independente da resposta em texto.
+    A chamada usa models.generate_content, conforme o SDK google-genai.
     """
     texto = str(text or "").strip()
     if not texto:
@@ -424,53 +450,62 @@ def generate_audio_for_avatar(text, avatar=None):
 
     api_key = _get_api_key()
     if not api_key:
+        print("Áudio não gerado: GEMINI_API_KEY não está configurada.")
         return None
 
     avatar_key = str(avatar or "").strip().lower()
     voice_name = AVATAR_VOICES.get(avatar_key, "Puck")
+    modelo_audio = _get_setting("GEMINI_TTS_MODEL", "gemini-3.8-flash-tts")
 
     try:
         client = genai.Client(api_key=api_key)
 
-        # TTS utiliza um modelo próprio, separado do modelo de texto.
-        interaction = client.interactions.create(
-            model=TTS_MODEL,
-            input=texto,
-            response_format={"type": "audio"},
-            generation_config={
-                "speech_config": [
-                    {"voice": voice_name}
-                ]
-            },
+        print(
+            f"Iniciando geração de áudio: modelo={modelo_audio}, "
+            f"voz={voice_name}"
         )
 
-        audio_data = getattr(
-            getattr(interaction, "output_audio", None),
-            "data",
-            None
+        response = client.models.generate_content(
+            model=modelo_audio,
+            contents=texto,
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name=voice_name
+                        )
+                    )
+                ),
+            ),
         )
 
-        if not audio_data:
-            print("A API Gemini TTS não retornou dados de áudio.")
-            return None
+        # O SDK retorna o áudio em inline_data.data.
+        for candidate in (getattr(response, "candidates", None) or []):
+            content = getattr(candidate, "content", None)
+            for part in (getattr(content, "parts", None) or []):
+                inline_data = getattr(part, "inline_data", None)
+                audio_data = getattr(inline_data, "data", None)
 
-        # A API retorna o áudio em Base64.
-        if isinstance(audio_data, str):
-            return base64.b64decode(audio_data)
-
-        # Compatibilidade caso o SDK já entregue bytes.
-        if isinstance(audio_data, bytes):
-            return audio_data
+                if audio_data:
+                    if isinstance(audio_data, bytes):
+                        return audio_data
+                    if isinstance(audio_data, bytearray):
+                        return bytes(audio_data)
 
         print(
-            "Formato de áudio não reconhecido: "
-            f"{type(audio_data).__name__}"
+            "A API Gemini não retornou conteúdo de áudio. "
+            "Verifique o modelo TTS e o acesso da chave."
         )
         return None
 
     except Exception as e:
-        print(
-            f"Erro ao gerar áudio para o avatar "
-            f"({type(e).__name__}): {e}"
-        )
+        print("\\n" + "=" * 70)
+        print("ERRO REAL AO GERAR ÁUDIO DO AVATAR")
+        print("TIPO:", type(e).__name__)
+        print("MENSAGEM:", str(e))
+        print("MODELO TTS:", modelo_audio)
+        print("VOZ:", voice_name)
+        traceback.print_exc()
+        print("=" * 70 + "\\n")
         return None
