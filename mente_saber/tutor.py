@@ -45,11 +45,12 @@ AVATAR_VOICES = {
 # disponível ou não oferecer suporte a generateContent.
 # A disponibilidade real é consultada na API para a chave configurada.
 PREFERRED_TEXT_MODELS = (
-    "gemini-3.8-flash",
+    # Alternativa leve antes de tentar outro modelo Flash de maior demanda.
+    "gemini-3.5-flash-lite",
     "gemini-3.7-flash",
     "gemini-3.6-flash",
     "gemini-3.5-flash",
-    "gemini-2.5-flash",
+    "gemini-3.8-flash",
 )
 
 # O modelo TTS é lido em tempo de execução, inclusive de st.secrets no Streamlit Cloud.
@@ -384,7 +385,11 @@ QUALIDADE E SEGURANÇA:
         )
         print("Mente Saber: consultando modelos Gemini disponíveis...", flush=True)
         candidate_models = _get_available_text_models(client, max_models=2)
-        print(f"Mente Saber: modelos selecionados: {candidate_models}", flush=True)
+        print(
+            "Mente Saber: modelos escolhidos para esta solicitação: "
+            f"{candidate_models}",
+            flush=True,
+        )
         contents = _build_contents(history, pergunta)
 
         response = None
@@ -392,7 +397,7 @@ QUALIDADE E SEGURANÇA:
         ultimo_erro = None
 
         # No máximo 3 chamadas: duas no primeiro modelo e uma no segundo.
-        # Cada chamada tem timeout HTTP de 10 segundos.
+        # Cada chamada tem timeout HTTP de 30 segundos.
         for model_index, candidate_model in enumerate(candidate_models):
             tentativas = 2 if model_index == 0 else 1
 
