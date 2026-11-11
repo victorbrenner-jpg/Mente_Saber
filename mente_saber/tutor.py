@@ -621,4 +621,4 @@ def generate_audio_for_avatar(text, avatar=None):
         print("VOZ:", voice_name)
         traceback.print_exc()
         print("=" * 70 + "\n")
-        return None\n
+        return None
