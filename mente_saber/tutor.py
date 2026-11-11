@@ -1,9 +1,8 @@
 import os
-
 from google import genai
 from google.genai import types
 
-
+# Personagens e suas instruções de comportamento
 AVATAR_PERSONAS = {
     "coruja": (
         "Você é Olívia, uma coruja sábia, curiosa e acolhedora. "
@@ -21,6 +20,14 @@ AVATAR_PERSONAS = {
         "Você é Mimi, uma gata esperta, tranquila e curiosa. "
         "Use um tom simpático e observador, com explicações corretas e pacientes."
     ),
+}
+
+# Mapeamento de vozes pré-construídas da API Gemini para cada avatar
+AVATAR_VOICES = {
+    "coruja": "Fenrir",
+    "borboleta": "Kore",
+    "cachorro": "Puck",
+    "gato": "Aoede",
 }
 
 
@@ -67,15 +74,7 @@ def _demo_answer(subject, question, user_name=None, mode="estudar"):
 
 
 def answer_question(subject, question, user_id=None, user_name=None, avatar=None, mode="estudar", history=None):
-    """Gera uma resposta pedagógica do Mente Saber.
-
-    user_id é mantido para compatibilidade com o aplicativo.
-    user_name personaliza a resposta quando informado.
-    avatar é opcional: coruja, borboleta, cachorro ou gato.
-    mode aceita estudar, conversar ou brincar.
-    history é a lista de mensagens anteriores da conversa (role/content),
-    usada para o tutor corrigir exercícios e manter o fio da conversa.
-    """
+    """Gera uma resposta pedagógica do Mente Saber."""
     pergunta = (question or "").strip()
     if not pergunta:
         return "Digite uma pergunta para que eu possa ajudar você.", "error"
@@ -91,7 +90,8 @@ def answer_question(subject, question, user_id=None, user_name=None, avatar=None
         return _demo_answer(subject, pergunta, user_name=nome_aluno, mode=modo), "demo"
 
     nome_para_prompt = nome_aluno if nome_aluno else "não informado"
-    estilo_avatar = AVATAR_PERSONAS.get(str(avatar or "").strip().lower(), "")
+    avatar_key = str(avatar or "").strip().lower()
+    estilo_avatar = AVATAR_PERSONAS.get(avatar_key, "")
 
     system_prompt = f"""
 Você é o tutor virtual do Mente Saber.
@@ -143,9 +143,10 @@ QUALIDADE E SEGURANÇA:
 
     try:
         client = genai.Client(api_key=api_key)
-        model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
-        if not model:
-            model = "gemini-3.5-flash-lite"
+        # Ajustado para modelo oficial e mantido fallback seguro
+        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+        if not model or model == "gemini-3.5-flash-lite":
+            model = "gemini-2.5-flash"
 
         response = client.models.generate_content(
             model=model,
@@ -164,7 +165,6 @@ QUALIDADE E SEGURANÇA:
         return content.strip(), "ai"
 
     except Exception as e:
-        # O detalhe fica no terminal para diagnóstico; a interface recebe mensagem segura.
         print(f"Erro ao acessar a API do Gemini ({type(e).__name__}): {e}")
         mensagem = str(e).upper()
 
@@ -189,3 +189,41 @@ QUALIDADE E SEGURANÇA:
             "Não consegui acessar a inteligência artificial agora. Verifique a conexão, a chave da API, "
             "o modelo configurado e os limites de uso da sua conta Gemini."
         ), "error"
+
+
+def generate_audio_for_avatar(text: str, avatar: str = None):
+    """Gera áudio para o texto recebido utilizando a voz personalizada vinculada ao avatar."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    avatar_key = str(avatar or "").strip().lower()
+    voice_name = AVATAR_VOICES.get(avatar_key, "Puck")  # 'Puck' é a voz padrão
+
+    try:
+        client = genai.Client(api_key=api_key)
+        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+
+        response = client.models.generate_content(
+            model=model,
+            contents=text,
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name=voice_name
+                        )
+                    )
+                ),
+            ),
+        )
+
+        for part in response.candidates[0].content.parts:
+            if part.inline_data and part.inline_data.mime_type.startswith("audio/"):
+                return part.inline_data.data
+
+        return None
+    except Exception as e:
+        print(f"Erro ao gerar áudio ({type(e).__name__}): {e}")
+        return None
