@@ -15,7 +15,15 @@ AVATAR_PERSONAS = {
         "Você é Olívia, uma coruja sábia, curiosa e acolhedora. "
         "Explique com clareza, passo a passo, usando exemplos simples e corretos."
     ),
+    "olivia": (
+        "Você é Olívia, uma coruja sábia, curiosa e acolhedora. "
+        "Explique com clareza, passo a passo, usando exemplos simples e corretos."
+    ),
     "borboleta": (
+        "Você é Fifi, uma borboleta gentil, colorida e curiosa. "
+        "Use um tom leve e encorajador sem prejudicar a clareza nem a precisão."
+    ),
+    "fifi": (
         "Você é Fifi, uma borboleta gentil, colorida e curiosa. "
         "Use um tom leve e encorajador sem prejudicar a clareza nem a precisão."
     ),
@@ -23,28 +31,39 @@ AVATAR_PERSONAS = {
         "Você é Bolt, um cachorro tutor animado, leal e amigável. "
         "Explique com paciência, clareza e exemplos, mantendo o conteúdo correto."
     ),
+    "bolt": (
+        "Você é Bolt, um cachorro tutor animado, leal e amigável. "
+        "Explique com paciência, clareza e exemplos, mantendo o conteúdo correto."
+    ),
     "gato": (
+        "Você é Mimi, uma gata esperta, tranquila e curiosa. "
+        "Use um tom simpático e observador, com explicações corretas e pacientes."
+    ),
+    "mimi": (
         "Você é Mimi, uma gata esperta, tranquila e curiosa. "
         "Use um tom simpático e observador, com explicações corretas e pacientes."
     ),
 }
 
-
-# Mapeamento corrigido das vozes pré-construídas do Gemini TTS:
-# - Aoede: voz feminina articulada e calorosa (Olívia / Fifi)
-# - Puck: voz masculina jovem, animada e dinâmica (Bolt)
-# - Kore: voz feminina suave, relaxada e delicada (Mimi)
+# Mapeamento completo de vozes aceitando tanto o nome do personagem quanto o animal
 AVATAR_VOICES = {
     "coruja": "Aoede",      # Olívia: Feminina, acolhedora, suave e didática
+    "olivia": "Aoede",
     "borboleta": "Aoede",   # Fifi: Feminina, alegre, infantil e expressiva
+    "fifi": "Aoede",
     "cachorro": "Puck",     # Bolt: Masculino, divertido, energético e jovem
+    "bolt": "Puck",
     "gato": "Kore",         # Mimi: Feminina, doce, delicada e carinhosa
+    "mimi": "Kore",
 }
 
-# Instruções de prosódia enviadas ao sintetizador de áudio do Gemini para
-# conferir personalidade única a cada avatar sem depender apenas da voz base.
+# Instruções de prosódia enviadas ao sintetizador de áudio do Gemini
 AVATAR_AUDIO_PROMPTS = {
     "coruja": (
+        "Fale como Olívia: voz feminina, acolhedora, suave e didática, "
+        "com ritmo pausado, articulação clara e tom encorajador para crianças."
+    ),
+    "olivia": (
         "Fale como Olívia: voz feminina, acolhedora, suave e didática, "
         "com ritmo pausado, articulação clara e tom encorajador para crianças."
     ),
@@ -52,7 +71,15 @@ AVATAR_AUDIO_PROMPTS = {
         "Fale como Fifi: voz feminina, alegre, infantil, leve, entusiasmada "
         "e muito expressiva!"
     ),
+    "fifi": (
+        "Fale como Fifi: voz feminina, alegre, infantil, leve, entusiasmada "
+        "e muito expressiva!"
+    ),
     "cachorro": (
+        "Fale como Bolt: voz masculina jovem, divertida, leal, "
+        "energética e bastante amigável!"
+    ),
+    "bolt": (
         "Fale como Bolt: voz masculina jovem, divertida, leal, "
         "energética e bastante amigável!"
     ),
@@ -60,22 +87,39 @@ AVATAR_AUDIO_PROMPTS = {
         "Fale como Mimi: voz feminina, doce, delicada, tranquila e carinhosa, "
         "com ritmo sereno e tom acolhedor."
     ),
+    "mimi": (
+        "Fale como Mimi: voz feminina, doce, delicada, tranquila e carinhosa, "
+        "com ritmo sereno e tom acolhedor."
+    ),
 }
+
+
+def _normalize_avatar_key(avatar_input: str) -> str:
+    """
+    Normaliza a identificação do avatar para resolver discrepâncias entre
+    nomes dos personagens (Bolt, Olívia, Fifi, Mimi) e animais (cachorro, coruja, borboleta, gato).
+    """
+    s = str(avatar_input or "").strip().lower()
+    if "bolt" in s or "cachorro" in s:
+        return "bolt"
+    if "olivia" in s or "coruja" in s:
+        return "olivia"
+    if "fifi" in s or "borboleta" in s:
+        return "fifi"
+    if "mimi" in s or "gato" in s:
+        return "mimi"
+    return s
 
 
 # Modelos preferenciais, usados somente quando GEMINI_MODEL não estiver
 # disponível ou não oferecer suporte a generateContent.
-# A disponibilidade real é consultada na API para a chave configurada.
 PREFERRED_TEXT_MODELS = (
-    # Alternativa leve antes de tentar outro modelo Flash de maior demanda.
     "gemini-3.5-flash-lite",
     "gemini-3.7-flash",
     "gemini-3.6-flash",
     "gemini-3.5-flash",
     "gemini-3.8-flash",
 )
-
-# O modelo TTS é lido em tempo de execução, inclusive de st.secrets no Streamlit Cloud.
 
 
 # ============================================================
@@ -120,7 +164,6 @@ def _get_available_text_models(client, max_models=2) -> list:
     )
 
     available_models = []
-    # O timeout HTTP do cliente também protege esta consulta.
     for index, model_info in enumerate(client.models.list()):
         if index >= 60:
             break
@@ -142,8 +185,6 @@ def _get_available_text_models(client, max_models=2) -> list:
         if candidate in available_models and candidate not in ordered:
             ordered.append(candidate)
 
-    # Se os nomes preferenciais não aparecerem, usa o primeiro modelo
-    # que a própria API informou como compatível.
     for candidate in available_models:
         if candidate not in ordered:
             ordered.append(candidate)
@@ -312,7 +353,7 @@ def answer_question(
         )
 
     nome_para_prompt = nome_aluno if nome_aluno else "não informado"
-    avatar_key = str(avatar or "").strip().lower()
+    avatar_key = _normalize_avatar_key(avatar)
     estilo_avatar = AVATAR_PERSONAS.get(avatar_key, "")
 
     nome_disciplina = (
@@ -400,7 +441,6 @@ QUALIDADE E SEGURANÇA:
 """.strip()
 
     try:
-        # Timeout em milissegundos: evita deixar a tela presa indefinidamente.
         client = genai.Client(
             api_key=api_key,
             http_options=types.HttpOptions(timeout=30000),
@@ -418,8 +458,6 @@ QUALIDADE E SEGURANÇA:
         model_usado = None
         ultimo_erro = None
 
-        # No máximo 3 chamadas: duas no primeiro modelo e uma no segundo.
-        # Cada chamada tem timeout HTTP de 30 segundos.
         for model_index, candidate_model in enumerate(candidate_models):
             tentativas = 2 if model_index == 0 else 1
 
@@ -469,8 +507,6 @@ QUALIDADE E SEGURANÇA:
                         )
                         break
 
-                    # Para 404/NOT_FOUND ou limite 429, tenta o próximo
-                    # modelo disponível, se houver.
                     if (
                         (
                             "404" in mensagem_erro
@@ -516,8 +552,6 @@ QUALIDADE E SEGURANÇA:
         return content.strip(), "ai"
 
     except Exception as e:
-        # Diagnóstico completo no log do Streamlit Cloud.
-        # Nunca imprima a chave da API.
         print("\n" + "=" * 70)
         print("ERRO REAL AO ACESSAR A API GEMINI (RESPOSTA DE TEXTO)")
         print("TIPO:", type(e).__name__)
@@ -577,10 +611,6 @@ def generate_audio_for_avatar(text, avatar=None):
     """
     Converte o texto em áudio usando o modelo Gemini TTS.
     Retorna os bytes do áudio ou None se a geração falhar.
-
-    A geração de áudio é independente da resposta em texto.
-    A chamada usa models.generate_content, conforme o SDK google-genai,
-    injetando a instrução de prosódia e voz específica de cada personagem.
     """
     texto = str(text or "").strip()
     if not texto:
@@ -591,23 +621,27 @@ def generate_audio_for_avatar(text, avatar=None):
         print("Áudio não gerado: GEMINI_API_KEY não está configurada.")
         return None
 
-    avatar_key = str(avatar or "").strip().lower()
-    voice_name = AVATAR_VOICES.get(avatar_key, "Aoede")
+    # Normalização robusta da chave do avatar
+    avatar_key = _normalize_avatar_key(avatar)
+    
+    # Seleção estrita da voz (garante 'Puck' masculino para Bolt e vozes dedicadas para as demais)
+    voice_name = AVATAR_VOICES.get(avatar_key, "Puck" if avatar_key == "bolt" else "Aoede")
+    
     system_audio_prompt = AVATAR_AUDIO_PROMPTS.get(
         avatar_key,
         "Fale de forma clara, acolhedora e natural para crianças."
     )
     modelo_audio = _get_setting("GEMINI_TTS_MODEL", "gemini-2.5-flash")
 
+    print(
+        f"Mente Saber [ÁUDIO]: Avatar recebido='{avatar}' | "
+        f"Chave normalizada='{avatar_key}' | Voz selecionada='{voice_name}' | Modelo='{modelo_audio}'"
+    )
+
     try:
         client = genai.Client(
             api_key=api_key,
             http_options=types.HttpOptions(timeout=30000),
-        )
-
-        print(
-            f"Iniciando geração de áudio: avatar='{avatar_key}', modelo={modelo_audio}, "
-            f"voz={voice_name}"
         )
 
         response = client.models.generate_content(
@@ -626,7 +660,7 @@ def generate_audio_for_avatar(text, avatar=None):
             ),
         )
 
-        # O SDK retorna o áudio em inline_data.data.
+        # O SDK retorna o áudio em inline_data.data
         for candidate in (getattr(response, "candidates", None) or []):
             content = getattr(candidate, "content", None)
             for part in (getattr(content, "parts", None) or []):
@@ -639,10 +673,7 @@ def generate_audio_for_avatar(text, avatar=None):
                     if isinstance(audio_data, bytearray):
                         return bytes(audio_data)
 
-        print(
-            "A API Gemini não retornou conteúdo de áudio. "
-            "Verifique o modelo TTS e o acesso da chave."
-        )
+        print("A API Gemini não retornou conteúdo de áudio. Verifique o modelo TTS e a chave.")
         return None
 
     except Exception as e:
