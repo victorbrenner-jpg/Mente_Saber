@@ -1,4 +1,5 @@
 import os
+import time
 import traceback
 
 from google import genai
@@ -86,47 +87,62 @@ def _normalize_model_name(model_name: str) -> str:
     return str(model_name or "").strip().removeprefix("models/")
 
 
-def _get_valid_model(client) -> str:
+def _get_available_text_models(client) -> list:
     """
-    Retorna um modelo que a chave atual consegue listar e que oferece
-    suporte à operação generateContent.
+    Retorna modelos realmente listados pela API e compatíveis com
+    generateContent. A ordem prioriza GEMINI_MODEL e depois os modelos
+    preferenciais; os demais modelos compatíveis ficam como alternativas.
     """
     configured_model = _normalize_model_name(
         _get_setting("GEMINI_MODEL", "gemini-3.8-flash")
     )
 
-    available_models = set()
-
-    # A lista é consultada com a própria chave da aplicação.
+    available_models = []
     for model_info in client.models.list():
         supported_actions = getattr(model_info, "supported_actions", None) or []
         if "generateContent" not in supported_actions:
             continue
 
-        model_name = _normalize_model_name(
-            getattr(model_info, "name", "")
-        )
-        if model_name:
-            available_models.add(model_name)
+        model_name = _normalize_model_name(getattr(model_info, "name", ""))
+        if model_name and model_name not in available_models:
+            available_models.append(model_name)
 
-    # Primeiro tenta respeitar o modelo definido pelo administrador.
-    if configured_model and configured_model in available_models:
-        return configured_model
+    ordered = []
+    if configured_model in available_models:
+        ordered.append(configured_model)
 
-    # Se o modelo configurado não estiver disponível, escolhe o primeiro
-    # modelo preferencial que a API realmente disponibilizar.
     for candidate in PREFERRED_TEXT_MODELS:
-        if candidate in available_models:
-            print(
-                f"GEMINI_MODEL='{configured_model}' indisponível. "
-                f"Usando modelo disponível: {candidate}"
-            )
-            return candidate
+        if candidate in available_models and candidate not in ordered:
+            ordered.append(candidate)
 
-    raise RuntimeError(
-        "Nenhum modelo compatível com generateContent foi encontrado "
-        "para esta chave Gemini. Verifique a chave, o projeto e o acesso "
-        "aos modelos no Google AI Studio."
+    for candidate in available_models:
+        if candidate not in ordered:
+            ordered.append(candidate)
+
+    if not ordered:
+        raise RuntimeError(
+            "Nenhum modelo compatível com generateContent foi encontrado "
+            "para esta chave Gemini. Verifique a chave, o projeto e o acesso "
+            "aos modelos no Google AI Studio."
+        )
+
+    return ordered
+
+
+def _get_valid_model(client) -> str:
+    """Mantida para compatibilidade com chamadas existentes no projeto."""
+    return _get_available_text_models(client)[0]
+
+
+def _is_temporary_overload(error) -> bool:
+    """Identifica indisponibilidade temporária/sobrecarga do serviço."""
+    message = str(error).upper()
+    status_code = getattr(error, "code", None) or getattr(error, "status_code", None)
+    return (
+        str(status_code) == "503"
+        or "503" in message
+        or "UNAVAILABLE" in message
+        or "HIGH DEMAND" in message
     )
 
 
@@ -355,18 +371,82 @@ QUALIDADE E SEGURANÇA:
 
     try:
         client = genai.Client(api_key=api_key)
-        model = _get_valid_model(client)
-        print(f'Mente Saber: usando modelo de texto Gemini: {model}')
+        candidate_models = _get_available_text_models(client)
+        contents = _build_contents(history, pergunta)
 
-        response = client.models.generate_content(
-            model=model,
-            contents=_build_contents(history, pergunta),
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=0.4,
-                max_output_tokens=1100,
-            ),
-        )
+        response = None
+        model_usado = None
+        ultimo_erro = None
+
+        # Cada modelo recebe até duas tentativas. Se houver 503, o tutor
+        # aguarda brevemente e tenta outro modelo listado pela própria API.
+        for model_index, candidate_model in enumerate(candidate_models):
+            for attempt in range(1, 3):
+                try:
+                    print(
+                        f"Mente Saber: tentando modelo {candidate_model} "
+                        f"(tentativa {attempt}/2)."
+                    )
+                    response = client.models.generate_content(
+                        model=candidate_model,
+                        contents=contents,
+                        config=types.GenerateContentConfig(
+                            system_instruction=system_prompt,
+                            temperature=0.4,
+                            max_output_tokens=1100,
+                        ),
+                    )
+                    model_usado = candidate_model
+                    break
+
+                except Exception as model_error:
+                    ultimo_erro = model_error
+
+                    if _is_temporary_overload(model_error):
+                        print(
+                            f"Modelo {candidate_model} temporariamente "
+                            "sobrecarregado (503)."
+                        )
+                        if attempt < 2:
+                            espera = 2 * attempt
+                            print(f"Nova tentativa em {espera} segundos.")
+                            time.sleep(espera)
+                            continue
+
+                        if model_index < len(candidate_models) - 1:
+                            print(
+                                "Tentando outro modelo compatível "
+                                "disponibilizado pela API."
+                            )
+                            break
+
+                        raise
+
+                    # Modelo removido/inacessível: tenta a próxima opção.
+                    mensagem_erro = str(model_error).upper()
+                    if (
+                        "404" in mensagem_erro
+                        or "NOT_FOUND" in mensagem_erro
+                    ) and model_index < len(candidate_models) - 1:
+                        print(
+                            f"Modelo {candidate_model} não encontrado. "
+                            "Tentando a próxima alternativa."
+                        )
+                        break
+
+                    # Erros de chave, permissão ou cota não devem ser
+                    # mascarados por tentativas em outros modelos.
+                    raise
+
+            if response is not None:
+                break
+
+        if response is None:
+            if ultimo_erro:
+                raise ultimo_erro
+            raise RuntimeError("Nenhum modelo Gemini conseguiu responder.")
+
+        print(f"Mente Saber: resposta gerada pelo modelo {model_usado}.")
 
         content = getattr(response, "text", None)
 
@@ -381,7 +461,7 @@ QUALIDADE E SEGURANÇA:
     except Exception as e:
         # Diagnóstico completo no log do Streamlit Cloud.
         # Nunca imprima a chave da API.
-        print("\\n" + "=" * 70)
+        print("\n" + "=" * 70)
         print("ERRO REAL AO ACESSAR A API GEMINI (RESPOSTA DE TEXTO)")
         print("TIPO:", type(e).__name__)
         print("MENSAGEM:", str(e))
@@ -500,7 +580,7 @@ def generate_audio_for_avatar(text, avatar=None):
         return None
 
     except Exception as e:
-        print("\\n" + "=" * 70)
+        print("\n" + "=" * 70)
         print("ERRO REAL AO GERAR ÁUDIO DO AVATAR")
         print("TIPO:", type(e).__name__)
         print("MENSAGEM:", str(e))
