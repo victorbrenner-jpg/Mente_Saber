@@ -87,18 +87,21 @@ def _normalize_model_name(model_name: str) -> str:
     return str(model_name or "").strip().removeprefix("models/")
 
 
-def _get_available_text_models(client) -> list:
+def _get_available_text_models(client, max_models=2) -> list:
     """
-    Retorna modelos realmente listados pela API e compatíveis com
-    generateContent. A ordem prioriza GEMINI_MODEL e depois os modelos
-    preferenciais; os demais modelos compatíveis ficam como alternativas.
+    Descobre modelos compatíveis com generateContent, mas limita a seleção
+    a no máximo dois modelos para não deixar o aluno esperando uma fila longa.
     """
     configured_model = _normalize_model_name(
-        _get_setting("GEMINI_MODEL", "gemini-3.8-flash")
+        _get_setting("GEMINI_MODEL", "gemini-2.5-flash")
     )
 
     available_models = []
-    for model_info in client.models.list():
+    # O timeout HTTP do cliente também protege esta consulta.
+    for index, model_info in enumerate(client.models.list()):
+        if index >= 60:
+            break
+
         supported_actions = getattr(model_info, "supported_actions", None) or []
         if "generateContent" not in supported_actions:
             continue
@@ -108,6 +111,7 @@ def _get_available_text_models(client) -> list:
             available_models.append(model_name)
 
     ordered = []
+
     if configured_model in available_models:
         ordered.append(configured_model)
 
@@ -115,18 +119,19 @@ def _get_available_text_models(client) -> list:
         if candidate in available_models and candidate not in ordered:
             ordered.append(candidate)
 
+    # Se os nomes preferenciais não aparecerem, usa o primeiro modelo
+    # que a própria API informou como compatível.
     for candidate in available_models:
         if candidate not in ordered:
             ordered.append(candidate)
 
     if not ordered:
         raise RuntimeError(
-            "Nenhum modelo compatível com generateContent foi encontrado "
-            "para esta chave Gemini. Verifique a chave, o projeto e o acesso "
-            "aos modelos no Google AI Studio."
+            "A chave Gemini não retornou modelos compatíveis com "
+            "generateContent. Confira o projeto e as permissões da API."
         )
 
-    return ordered
+    return ordered[:max_models]
 
 
 def _get_valid_model(client) -> str:
@@ -370,30 +375,40 @@ QUALIDADE E SEGURANÇA:
 """.strip()
 
     try:
-        client = genai.Client(api_key=api_key)
-        candidate_models = _get_available_text_models(client)
+        # Timeout em milissegundos: evita deixar a tela presa indefinidamente.
+        client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=10000),
+        )
+        print("Mente Saber: consultando modelos Gemini disponíveis...", flush=True)
+        candidate_models = _get_available_text_models(client, max_models=2)
+        print(f"Mente Saber: modelos selecionados: {candidate_models}", flush=True)
         contents = _build_contents(history, pergunta)
 
         response = None
         model_usado = None
         ultimo_erro = None
 
-        # Cada modelo recebe até duas tentativas. Se houver 503, o tutor
-        # aguarda brevemente e tenta outro modelo listado pela própria API.
+        # No máximo 3 chamadas: duas no primeiro modelo e uma no segundo.
+        # Cada chamada tem timeout HTTP de 10 segundos.
         for model_index, candidate_model in enumerate(candidate_models):
-            for attempt in range(1, 3):
+            tentativas = 2 if model_index == 0 else 1
+
+            for attempt in range(1, tentativas + 1):
                 try:
                     print(
-                        f"Mente Saber: tentando modelo {candidate_model} "
-                        f"(tentativa {attempt}/2)."
+                        f"Mente Saber: solicitando resposta ao modelo "
+                        f"{candidate_model} (tentativa {attempt}/{tentativas}).",
+                        flush=True,
                     )
+
                     response = client.models.generate_content(
                         model=candidate_model,
                         contents=contents,
                         config=types.GenerateContentConfig(
                             system_instruction=system_prompt,
                             temperature=0.4,
-                            max_output_tokens=1100,
+                            max_output_tokens=900,
                         ),
                     )
                     model_usado = candidate_model
@@ -401,45 +416,42 @@ QUALIDADE E SEGURANÇA:
 
                 except Exception as model_error:
                     ultimo_erro = model_error
+                    mensagem_erro = str(model_error).upper()
 
                     if _is_temporary_overload(model_error):
                         print(
-                            f"Modelo {candidate_model} temporariamente "
-                            "sobrecarregado (503)."
+                            f"Mente Saber: {candidate_model} retornou "
+                            f"indisponibilidade temporária: {model_error}",
+                            flush=True,
                         )
-                        if attempt < 2:
-                            espera = 2 * attempt
-                            print(f"Nova tentativa em {espera} segundos.")
-                            time.sleep(espera)
+                        if attempt < tentativas:
+                            time.sleep(1)
                             continue
+                        break
 
-                        if model_index < len(candidate_models) - 1:
-                            print(
-                                "Tentando outro modelo compatível "
-                                "disponibilizado pela API."
-                            )
-                            break
-
-                        raise
-
-                    # Modelo removido/inacessível: tenta a próxima opção.
-                    mensagem_erro = str(model_error).upper()
+                    # Se um modelo foi removido ou não está acessível,
+                    # tenta somente a segunda opção, se houver.
                     if (
-                        "404" in mensagem_erro
-                        or "NOT_FOUND" in mensagem_erro
-                    ) and model_index < len(candidate_models) - 1:
+                        ("404" in mensagem_erro or "NOT_FOUND" in mensagem_erro)
+                        and model_index < len(candidate_models) - 1
+                    ):
                         print(
-                            f"Modelo {candidate_model} não encontrado. "
-                            "Tentando a próxima alternativa."
+                            f"Mente Saber: modelo {candidate_model} "
+                            "não encontrado; tentando a alternativa.",
+                            flush=True,
                         )
                         break
 
-                    # Erros de chave, permissão ou cota não devem ser
-                    # mascarados por tentativas em outros modelos.
                     raise
 
             if response is not None:
                 break
+
+            if model_index < len(candidate_models) - 1:
+                print(
+                    f"Mente Saber: tentando alternativa {candidate_models[model_index + 1]}.",
+                    flush=True,
+                )
 
         if response is None:
             if ultimo_erro:
@@ -467,7 +479,7 @@ QUALIDADE E SEGURANÇA:
         print("MENSAGEM:", str(e))
         print("MODELO CONFIGURADO:", _get_setting("GEMINI_MODEL", "(não definido)"))
         traceback.print_exc()
-        print("=" * 70 + "\\n")
+        print("=" * 70 + "\n")
 
         mensagem = str(e).upper()
 
@@ -538,7 +550,10 @@ def generate_audio_for_avatar(text, avatar=None):
     modelo_audio = _get_setting("GEMINI_TTS_MODEL", "gemini-3.8-flash-tts")
 
     try:
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=10000),
+        )
 
         print(
             f"Iniciando geração de áudio: modelo={modelo_audio}, "
@@ -587,5 +602,5 @@ def generate_audio_for_avatar(text, avatar=None):
         print("MODELO TTS:", modelo_audio)
         print("VOZ:", voice_name)
         traceback.print_exc()
-        print("=" * 70 + "\\n")
+        print("=" * 70 + "\n")
         return None
