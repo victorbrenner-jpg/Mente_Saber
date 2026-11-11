@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="brainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+  <path d="M100 30 C70 30 50 50 50 75 C35 80 25 95 25 115 C25 140 45 160 70 160 C80 160 90 155 100 145 C110 155 120 160 130 160 C155 160 175 140 175 115 C175 95 165 80 150 75 C150 50 130 30 100 30 Z" fill="url(#brainGrad)"/>
+  <path d="M100 45 V135 M75 60 C85 75 85 95 75 110 M125 60 C115 75 115 95 125 110" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <circle cx="70" cy="70" r="4" fill="#ffffff"/>
+  <circle cx="130" cy="70" r="4" fill="#ffffff"/>
+  <circle cx="60" cy="110" r="4" fill="#ffffff"/>
+  <circle cx="140" cy="110" r="4" fill="#ffffff"/>
+</svg>

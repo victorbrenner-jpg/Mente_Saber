@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Conheça o Mente Saber: um espaço de aprendizagem com tutores virtuais para tirar dúvidas e estudar no seu ritmo. Experimente três perguntas grátis após criar sua conta.">
+<title>Mente Saber — Aprenda no seu ritmo</title>
+<style>
+:root {
+  --site-primary: #2447C6;
+  --site-secondary: #EAF0FF;
+  --site-background: #F7F9FE;
+  --site-on-primary: #FFFFFF;
+  --site-on-secondary: #18316F;
+  --site-on-background: #17233D;
+  --site-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --site-font-heading: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --site-heading-scale: 1;
+  --site-spacing-scale: 1;
+  --site-radius-scale: 1;
+  --site-decoration-opacity: 1;
+  --ink: #17233D;
+  --muted: #5C6880;
+  --line: #E2E8F3;
+  --surface: light-dark(#FFFFFF, #151C2D);
+  --surface-soft: light-dark(#F0F4FF, #1B2540);
+  --shadow: 0 18px 50px rgba(28, 52, 110, .10);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-height: 100vh; width: 100%; font-family: var(--site-font-body); color: light-dark(var(--ink), #F2F5FF); background: var(--site-background); }
+#site-root { min-height: 100vh; width: 100%; max-width: none; background-color: var(--site-background); color: var(--site-on-background); border-radius: 0; overflow: visible; }
+a { color: inherit; text-decoration: none; }
+button, input { font: inherit; }
+.container { width: min(1140px, calc(100% - 40px)); margin: 0 auto; }
+header { position: sticky; top: 0; z-index: 20; background: light-dark(rgba(255,255,255,.92), rgba(16,22,37,.94)); border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); }
+.nav { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.brand { display: inline-flex; align-items: center; gap: 11px; font-weight: 800; letter-spacing: -.04em; font-size: 1.2rem; }
+.brand-mark { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; color: white; background: var(--site-primary); box-shadow: 0 8px 18px rgba(36,71,198,.24); }
+.brand-mark svg { width: 24px; height: 24px; }
+.nav-links { display: flex; align-items: center; gap: 28px; color: var(--muted); font-size: .94rem; }
+.nav-links a:hover { color: var(--site-primary); }
+.btn { display: inline-flex; justify-content: center; align-items: center; gap: 9px; padding: 13px 19px; border-radius: calc(13px * var(--site-radius-scale)); border: 1px solid transparent; font-weight: 750; font-size: .95rem; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+.btn:hover { transform: translateY(-2px); }
+.btn-primary { background: var(--site-primary); color: var(--site-on-primary); box-shadow: 0 10px 24px rgba(36,71,198,.22); }
+.btn-primary:hover { box-shadow: 0 14px 28px rgba(36,71,198,.3); }
+.btn-outline { border-color: var(--line); color: var(--site-on-background); background: var(--surface); }
+.btn-small { padding: 10px 15px; font-size: .9rem; }
+.hero { position: relative; padding: 82px 0 72px; background: radial-gradient(ellipse at 85% 12%, rgba(102,132,255,.18), transparent 34%), radial-gradient(ellipse at 0% 100%, rgba(117,190,255,.13), transparent 34%), var(--site-background); }
+.hero-grid { display: grid; grid-template-columns: 1.08fr .92fr; align-items: center; gap: 54px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #DCE5FF; border-radius: 999px; background: var(--site-secondary); color: var(--site-on-secondary); font-size: .82rem; font-weight: 750; }
+.dot { width: 7px; height: 7px; background: #26A879; border-radius: 50%; }
+h1, h2, h3 { font-family: var(--site-font-heading); letter-spacing: -.045em; }
+h1 { font-size: clamp(2.7rem, 5vw, 4.5rem); line-height: 1.04; margin: 23px 0 22px; max-width: 680px; }
+.gradient-text { color: var(--site-primary); }
+.hero-copy { font-size: 1.12rem; line-height: 1.8; color: var(--muted); max-width: 590px; margin: 0 0 29px; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.trust-note { display: flex; align-items: center; gap: 10px; margin-top: 22px; color: var(--muted); font-size: .86rem; }
+.trust-note svg { flex: 0 0 auto; color: #20805E; }
+.mock-wrap { position: relative; padding: 14px; }
+.mock-glow { position: absolute; inset: 10% 0 0 8%; border-radius: 40px; background: linear-gradient(140deg, #BFCBFF, #D9EEFF); filter: blur(28px); opacity: var(--site-decoration-opacity); }
+.mock-card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 26px; padding: 23px; box-shadow: var(--shadow); transform: rotate(1deg); }
+.mock-top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.mock-title { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+.mini-logo { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; color: white; background: var(--site-primary); }
+.status { background: #E7F8F0; color: #18734F; padding: 6px 9px; border-radius: 99px; font-size: .74rem; font-weight: 800; }
+.subject-label { font-size: .78rem; color: var(--muted); margin: 21px 0 8px; }
+.mock-card h3 { font-size: 1.35rem; margin: 0 0 17px; }
+.chat-bubble { padding: 14px 15px; border-radius: 15px; font-size: .88rem; line-height: 1.6; margin: 10px 0; }
+.chat-user { margin-left: 40px; background: var(--site-secondary); color: var(--site-on-secondary); border-bottom-right-radius: 5px; }
+.chat-ai { margin-right: 18px; background: light-dark(#F5F7FC, #222C43); border: 1px solid var(--line); border-bottom-left-radius: 5px; }
+.ai-tag { display: flex; align-items: center; gap: 7px; font-weight: 800; font-size: .78rem; margin-bottom: 7px; color: var(--site-primary); }
+.avatar-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0 17px; }
+.avatar-option { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 9px 4px; text-align: center; color: var(--muted); font-size: .72rem; font-weight: 750; }
+.avatar-option span { display: grid; place-items: center; font-size: 1.45rem; margin-bottom: 4px; min-height: 42px; }
+.avatar-option span svg { display: block; width: 42px; height: 42px; max-width: 100%; }
+.avatar-option.selected { border-color: var(--site-primary); background: var(--site-secondary); color: var(--site-on-secondary); box-shadow: 0 0 0 2px rgba(36,71,198,.08); }
+.avatar-option { cursor: pointer; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+.avatar-option:hover { transform: translateY(-2px); }
+.mascot-stage { display: flex; align-items: center; gap: 14px; padding: 13px; border: 1px solid #dce5fb; border-radius: 18px; background: linear-gradient(145deg, #f8faff 0%, #eaf0ff 58%, #e3edff 100%); margin: 10px 0 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 8px 20px rgba(37,67,140,.07); }
+.mascot-face { width: 148px; height: 166px; flex: 0 0 148px; position: relative; display: grid; place-items: center; isolation: isolate; perspective: 650px; border-radius: 25px; background: radial-gradient(ellipse at 50% 72%,rgba(116,151,232,.28) 0%,rgba(202,218,255,.32) 36%,transparent 70%), linear-gradient(145deg,rgba(255,255,255,.9),rgba(232,239,255,.55)); box-shadow: inset 0 2px 4px rgba(255,255,255,.95), inset 0 -8px 18px rgba(105,133,207,.09); animation: mascot-float 3.4s ease-in-out infinite; overflow: hidden; }
+.mascot-face::before { content: ""; position: absolute; z-index: -1; width: 78px; height: 15px; bottom: 11px; left: 50%; transform: translateX(-50%); border-radius: 50%; background: rgba(39,63,119,.18); filter: blur(8px); animation: mascot-shadow 3.4s ease-in-out infinite; }
+.mascot-face::after { content: ""; position: absolute; inset: 7px; z-index: 2; pointer-events: none; border-radius: 19px; background: linear-gradient(125deg,rgba(255,255,255,.32),transparent 35%,transparent 70%,rgba(107,139,217,.07)); }
+.mascot-face svg { display: block; width: 140px; height: 160px; max-width: 100%; max-height: 100%; flex: 0 0 auto; overflow: visible; transform: translateY(-3px) rotateY(-5deg); filter: drop-shadow(0 3px 1px rgba(255,255,255,.85)) drop-shadow(0 8px 5px rgba(25,47,100,.18)) drop-shadow(0 15px 10px rgba(45,67,122,.08)); }
+.mascot-face canvas { display:block; position:absolute; inset:0; width:100% !important; height:100% !important; max-width:none; max-height:none; border-radius:20px; cursor:grab; touch-action:pan-y; }
+.mascot-face canvas:active { cursor:grabbing; }
+.mascot-face.is-3d { overflow:hidden; }
+.mascot-info { min-width: 0; }
+.mascot-info strong { display: block; font-size: .95rem; margin-bottom: 4px; }
+.mascot-info span { color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.mascot-tools { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 14px; }
+.mascot-tool { border: 1px solid var(--line); background: var(--surface); color: var(--site-on-background); border-radius: 10px; padding: 8px 10px; cursor: pointer; font-size: .76rem; font-weight: 750; }
+.mascot-tool:hover, .mascot-tool.active { border-color: var(--site-primary); background: var(--site-secondary); color: var(--site-on-secondary); }
+@keyframes mascot-float { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-5px) rotate(1deg); } }
+@keyframes mascot-shadow { 0%,100% { transform: translateX(-50%) scaleX(1); opacity:.8; } 50% { transform: translateX(-50%) scaleX(.78); opacity:.45; } }
+.progress-row { display: flex; align-items: center; justify-content: space-between; font-size: .78rem; color: var(--muted); margin-top: 22px; }
+.progress { height: 7px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+.progress span { display: block; width: 33%; height: 100%; border-radius: inherit; background: var(--site-primary); }
+.mini-input { display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 20px; color: #8993A8; font-size: .82rem; }
+.mini-send { background: var(--site-primary); color: white; width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; }
+.proof-strip { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: light-dark(#FFFFFF, #111827); }
+.proof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 25px 0; }
+.proof-item { display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--muted); font-size: .9rem; text-align: left; }
+.proof-item svg { color: var(--site-primary); flex: 0 0 auto; }
+.proof-item strong { display: block; color: var(--site-on-background); font-size: .95rem; margin-bottom: 3px; }
+section { padding: 82px 0; }
+.section-head { max-width: 700px; margin: 0 auto 42px; text-align: center; }
+.kicker { color: var(--site-primary); font-size: .8rem; text-transform: uppercase; letter-spacing: .13em; font-weight: 850; }
+h2 { font-size: clamp(2rem, 3.5vw, 3rem); line-height: 1.12; margin: 13px 0 15px; }
+.section-head p { color: var(--muted); line-height: 1.75; font-size: 1.02rem; margin: 0; }
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.feature { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 27px; box-shadow: 0 8px 24px rgba(28,52,110,.035); }
+.feature-icon { width: 48px; height: 48px; display: grid; place-items: center; background: var(--site-secondary); color: var(--site-primary); border-radius: 15px; margin-bottom: 20px; }
+.feature-icon svg { width: 24px; height: 24px; }
+.feature h3 { font-size: 1.18rem; margin: 0 0 10px; letter-spacing: -.025em; }
+.feature p { color: var(--muted); font-size: .94rem; line-height: 1.72; margin: 0; }
+.how { background: light-dark(#EEF3FF, #121A2B); }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; counter-reset: step; }
+.step { padding: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 19px; }
+.step-number { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; background: var(--site-primary); color: white; font-weight: 850; margin-bottom: 18px; }
+.step h3 { margin: 0 0 9px; font-size: 1.14rem; }
+.step p { margin: 0; color: var(--muted); font-size: .93rem; line-height: 1.7; }
+.plan-wrap { max-width: 850px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+.plan { border: 1px solid var(--line); background: var(--surface); border-radius: 23px; padding: 29px; }
+.plan.featured { border: 2px solid var(--site-primary); box-shadow: var(--shadow); position: relative; }
+.plan-badge { display: inline-block; background: var(--site-secondary); color: var(--site-on-secondary); font-size: .76rem; font-weight: 850; padding: 7px 10px; border-radius: 99px; margin-bottom: 15px; }
+.plan h3 { margin: 0 0 8px; font-size: 1.25rem; }
+.plan-desc { color: var(--muted); line-height: 1.6; font-size: .9rem; min-height: 44px; }
+.price { font-size: 2.4rem; letter-spacing: -.05em; font-weight: 850; margin: 20px 0 5px; }
+.price small { font-size: .9rem; letter-spacing: 0; font-weight: 600; color: var(--muted); }
+.plan ul { list-style: none; padding: 0; margin: 22px 0 25px; display: grid; gap: 13px; }
+.plan li { display: flex; gap: 10px; align-items: flex-start; font-size: .9rem; color: var(--muted); line-height: 1.5; }
+.check { color: #16825B; font-weight: 900; }
+.plan .btn { width: 100%; }
+.disclaimer { color: var(--muted); font-size: .8rem; text-align: center; line-height: 1.65; margin: 22px auto 0; max-width: 690px; }
+.trust-section { background: light-dark(#FFFFFF, #111827); }
+.trust-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 55px; align-items: center; }
+.trust-copy h2 { margin-top: 13px; }
+.trust-copy p { color: var(--muted); line-height: 1.8; }
+.trust-list { display: grid; gap: 14px; }
+.trust-row { display: flex; gap: 14px; padding: 19px; border: 1px solid var(--line); background: var(--surface); border-radius: 16px; }
+.trust-row svg { flex: 0 0 auto; color: var(--site-primary); margin-top: 2px; }
+.trust-row strong { display: block; margin-bottom: 5px; }
+.trust-row p { color: var(--muted); margin: 0; line-height: 1.65; font-size: .9rem; }
+.faq { max-width: 820px; margin: 0 auto; }
+details { border-bottom: 1px solid var(--line); padding: 19px 2px; }
+summary { cursor: pointer; font-weight: 800; list-style: none; display: flex; justify-content: space-between; gap: 20px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--site-primary); font-size: 1.35rem; line-height: 1; }
+details[open] summary::after { content: "−"; }
+details p { color: var(--muted); line-height: 1.75; margin: 13px 0 2px; font-size: .94rem; }
+.final-cta { padding: 0 0 82px; }
+.cta-panel { background: var(--site-primary); color: white; padding: 48px; border-radius: 27px; display: flex; align-items: center; justify-content: space-between; gap: 28px; position: relative; overflow: hidden; }
+.cta-panel::after { content: ""; position: absolute; width: 260px; height: 260px; border: 1px solid rgba(255,255,255,.18); border-radius: 50%; right: 15%; top: -140px; box-shadow: 0 0 0 35px rgba(255,255,255,.04), 0 0 0 70px rgba(255,255,255,.03); pointer-events: none; }
+.cta-panel h2 { max-width: 600px; margin: 0 0 12px; font-size: clamp(1.8rem, 3.4vw, 2.7rem); }
+.cta-panel p { margin: 0; color: #DCE5FF; line-height: 1.7; }
+.cta-panel .btn { background: white; color: #2447C6; flex: 0 0 auto; z-index: 1; }
+footer { border-top: 1px solid var(--line); background: light-dark(#FFFFFF, #101624); padding: 32px 0; }
+.footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+.footer-copy { color: var(--muted); font-size: .83rem; line-height: 1.7; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 18px; color: var(--muted); font-size: .85rem; }
+.footer-links a:hover { color: var(--site-primary); }
+.modal-backdrop { position: fixed; inset: 0; z-index: 9999; display: none; align-items: flex-start; justify-content: center; width: 100vw; height: 100vh; height: 100dvh; overflow-x: hidden; overflow-y: auto; padding: 20px; background: rgba(12,20,42,.62); backdrop-filter: blur(5px); overscroll-behavior: contain; }
+.modal-backdrop.open { display: flex; }
+.modal { width: min(490px, 100%); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-x: hidden; overflow-y: auto; margin: 0 auto; flex: 0 0 auto; background: var(--surface); color: var(--site-on-background); border-radius: 22px; padding: 28px; box-shadow: 0 25px 80px rgba(0,0,0,.25); overscroll-behavior: contain; }
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.modal h2 { font-size: 1.75rem; margin: 0 0 9px; }
+.modal p { color: var(--muted); line-height: 1.65; font-size: .93rem; }
+.close { border: 0; background: var(--surface-soft); color: var(--site-on-background); width: 36px; height: 36px; border-radius: 10px; cursor: pointer; font-size: 1.2rem; }
+.form-note { border-radius: 12px; background: var(--site-secondary); color: var(--site-on-secondary); padding: 13px; font-size: .84rem; line-height: 1.55; margin: 18px 0; }
+.modal label { display: block; font-weight: 750; font-size: .85rem; margin: 14px 0 7px; }
+.modal input { display: block; width: 100%; min-height: 46px; padding: 12px 13px; border: 1px solid var(--line); background: var(--site-background); color: var(--site-on-background); border-radius: 10px; outline-color: var(--site-primary); font-size: 16px; }
+.modal .btn { width: 100%; margin-top: 18px; }
+.modal-small { font-size: .78rem !important; }
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 35px; }
+  .hero { padding-top: 58px; }
+  .mock-wrap { max-width: 590px; width: 100%; margin: 0 auto; }
+  .features { grid-template-columns: repeat(2, 1fr); }
+  .trust-grid { grid-template-columns: 1fr; gap: 28px; }
+  .nav-links { gap: 15px; }
+}
+@media (max-width: 640px) {
+  .modal-backdrop { padding: 10px; }
+  .modal { max-height: calc(100vh - 20px); max-height: calc(100dvh - 20px); padding: 20px; border-radius: 18px; }
+  .container { width: min(100% - 28px, 1140px); }
+  .nav { min-height: 68px; }
+  .nav-links { display: none; }
+  .nav .btn { padding: 10px 12px; font-size: .82rem; }
+  .hero { padding: 43px 0 46px; }
+  h1 { font-size: clamp(2.45rem, 12vw, 3.3rem); }
+  .hero-copy { font-size: 1rem; }
+  .hero-actions { flex-direction: column; }
+  .hero-actions .btn { width: 100%; }
+  .mock-card { padding: 17px; border-radius: 20px; }
+  .mascot-face { width: 118px; height: 145px; flex-basis: 118px; }
+  .proof-grid { grid-template-columns: 1fr; gap: 18px; padding: 24px 0; }
+  .proof-item { justify-content: flex-start; }
+  section { padding: 60px 0; }
+  .features, .steps, .plan-wrap { grid-template-columns: 1fr; }
+  .feature, .step, .plan { padding: 23px; }
+  .plan-desc { min-height: auto; }
+  .cta-panel { padding: 30px 23px; flex-direction: column; align-items: flex-start; }
+  .cta-panel .btn { width: 100%; }
+  .footer-inner { align-items: flex-start; flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="site-root">
+<header>
+  <div class="container nav">
+    <a class="brand" href="#inicio" aria-label="Mente Saber, início">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3.5 3.5 0 0 0-6.5 1.8A3.7 3.7 0 0 0 4 13a3.6 3.6 0 0 0 5 5.2V4.5Z"/><path d="M15 4.5a3.5 3.5 0 0 1 6.5 1.8A3.7 3.7 0 0 1 20 13a3.6 3.6 0 0 1-5 5.2V4.5Z"/><path d="M9 8h-2m8 0h2M9 13H6m9 0h3M12 3v18"/></svg></span>
+      <span>Mente Saber</span>
+    </a>
+    <nav class="nav-links" aria-label="Navegação principal"><a href="#recursos">Recursos</a><a href="#como-funciona">Como funciona</a><a href="#planos">Plano</a><a href="#duvidas">Dúvidas</a></nav>
+    <div style="display:flex;align-items:center;gap:8px"><button class="btn btn-outline btn-small" data-open-login>Entrar</button><button class="btn btn-primary btn-small" data-open-signup>Cadastre-se grátis <span aria-hidden="true">→</span></button></div>
+  </div>
+</header>
+<main>
+  <section class="hero" id="inicio">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow"><span class="dot"></span> Seu próximo passo no aprendizado</span>
+        <h1>Aprender fica mais simples quando você pode <span class="gradient-text">perguntar.</span></h1>
+        <p class="hero-copy">Conheça o Mente Saber: escolha sua companheira virtual — coruja, borboleta, cachorro ou gato — e ela acompanhará você nos estudos, nas tarefas do dia a dia, nas conversas e até nas brincadeiras. Um mascote com personalidade própria para aprender e interagir do seu jeito.</p>
+        <div class="hero-actions"><button class="btn btn-primary" data-open-signup>Começar teste gratuito <span aria-hidden="true">→</span></button><a class="btn btn-outline" href="#como-funciona">Conhecer a plataforma</a></div>
+        <div class="trust-note"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg> Você cria sua conta primeiro. Depois, pode experimentar com 3 perguntas gratuitas.</div>
+      </div>
+      <div class="mock-wrap" aria-label="Prévia ilustrativa de uma conversa com tutor virtual">
+        <div class="mock-glow"></div>
+        <div class="mock-card">
+          <div class="mock-top"><div class="mock-title"><span class="mini-logo">✦</span><span>Mente Saber <small style="display:block;color:var(--muted);font-size:.72rem;font-weight:500;margin-top:2px">Seu espaço de aprendizagem</small></span></div><span class="status">● Ambiente de estudo</span></div>
+          <div class="subject-label">ESCOLHA SEU TUTOR-AVATAR</div>
+          <div class="avatar-picker" aria-label="Exemplos de avatares disponíveis">
+            <button class="avatar-option" type="button" data-avatar="coruja" aria-pressed="false"><span>🦉</span>Coruja</button>
+            <button class="avatar-option" type="button" data-avatar="borboleta" aria-pressed="false"><span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 160" role="img" aria-label="Ilustração da borboleta"><ellipse cx="70" cy="145" rx="35" ry="6" fill="#b8c9f4" opacity=".55"/><path d="M68 80 C40 30 8 40 18 78 C22 96 50 98 68 86Z" fill="#c98cf0" stroke="#7a4fb0" stroke-width="2"/><path d="M72 80 C100 30 132 40 122 78 C118 96 90 98 72 86Z" fill="#c98cf0" stroke="#7a4fb0" stroke-width="2"/><path d="M68 90 C45 92 28 112 40 128 C54 138 66 112 68 98Z" fill="#7fb7ff" stroke="#3f78c4" stroke-width="2"/><path d="M72 90 C95 92 112 112 100 128 C86 138 74 112 72 98Z" fill="#7fb7ff" stroke="#3f78c4" stroke-width="2"/><circle cx="36" cy="64" r="7" fill="#fff" opacity=".7"/><circle cx="104" cy="64" r="7" fill="#fff" opacity=".7"/><ellipse cx="70" cy="88" rx="6" ry="28" fill="#4a3a63"/><circle cx="70" cy="58" r="9" fill="#4a3a63"/><circle cx="66.5" cy="57" r="2" fill="#fff"/><circle cx="73.5" cy="57" r="2" fill="#fff"/><path d="M66 51 Q58 36 50 34 M74 51 Q82 36 90 34" fill="none" stroke="#4a3a63" stroke-width="2" stroke-linecap="round"/><circle cx="50" cy="34" r="2.5" fill="#4a3a63"/><circle cx="90" cy="34" r="2.5" fill="#4a3a63"/></svg></span>Borboleta</button>
+            <button class="avatar-option selected" type="button" data-avatar="cachorro" aria-pressed="true"><span>🐶</span>Cachorro</button>
+            <button class="avatar-option" type="button" data-avatar="gato" aria-pressed="false"><span>🐱</span>Gato</button>
+          </div>
+          <div class="mascot-stage" aria-live="polite"><div class="mascot-face" id="mascot-face" aria-hidden="true"><svg viewBox="0 0 140 160" role="img" aria-label="Cachorrinho ilustrado de corpo inteiro"><ellipse cx="70" cy="145" rx="36" ry="7" fill="#b8c9f4" opacity=".55"/><path d="M43 48 Q20 31 24 65 Q27 88 48 82Z" fill="#a96b3e" stroke="#754526" stroke-width="2"/><path d="M97 48 Q120 31 116 65 Q113 88 92 82Z" fill="#a96b3e" stroke="#754526" stroke-width="2"/><path d="M44 47 Q70 25 96 47 L103 83 Q100 111 70 117 Q40 111 37 83Z" fill="#e9b879" stroke="#9b6238" stroke-width="2"/><path d="M48 94 Q39 109 42 130 Q44 141 55 137 L60 116 M92 94 Q101 109 98 130 Q96 141 85 137 L80 116" fill="#e9b879" stroke="#9b6238" stroke-width="2.5" stroke-linecap="round"/><path d="M51 109 Q70 119 89 109 L91 125 Q70 141 49 125Z" fill="#4775df"/><circle cx="55" cy="72" r="5" fill="#2b2630"/><circle cx="85" cy="72" r="5" fill="#2b2630"/><circle cx="57" cy="70" r="1.5" fill="white"/><circle cx="87" cy="70" r="1.5" fill="white"/><ellipse cx="70" cy="86" rx="10" ry="7" fill="#49352c"/><path d="M70 92 Q65 101 58 96 M70 92 Q75 101 82 96" fill="none" stroke="#754526" stroke-width="2" stroke-linecap="round"/><path d="M42 58 Q48 46 58 43 M82 43 Q92 46 98 58" fill="none" stroke="#fff0d8" stroke-width="5" stroke-linecap="round"/><path d="M47 139 Q55 133 62 139 M78 139 Q85 133 93 139" fill="none" stroke="#754526" stroke-width="3" stroke-linecap="round"/><path d="M99 104 Q119 102 115 88" fill="none" stroke="#a96b3e" stroke-width="7" stroke-linecap="round"/></svg></div><div class="mascot-info"><strong id="mascot-name">Bolt, seu companheiro</strong><span id="mascot-description">Animado, curioso e pronto para aprender e brincar com você.</span></div></div>
+          <div class="mascot-tools" aria-label="Modos do mascote"><button class="mascot-tool active" type="button" data-mode="estudar">📚 Estudar</button><button class="mascot-tool" type="button" data-mode="conversar">💬 Conversar</button><button class="mascot-tool" type="button" data-mode="brincar">🎲 Brincar</button><button class="mascot-tool" type="button" id="voice-toggle" aria-pressed="false">🔊 Ouvir resposta</button></div>
+          <div class="subject-label">SEU MASCOTE · TUTOR E COMPANHEIRO</div>
+          <h3>O que vamos fazer hoje?</h3>
+          <div class="chat-bubble chat-user">Me ajuda a estudar e depois vamos brincar?</div>
+          <div class="chat-bubble chat-ai"><div class="ai-tag"><span>✦</span> <span id="chat-mascot-name">Bolt, seu mascote virtual</span></div><span id="mascot-greeting">Au au! 🐾 Vamos aprender juntos e depois brincar? Escolha um modo acima para ver como eu acompanho você.</span></div>
+          <div class="progress-row"><span>Seu teste gratuito</span><strong>0 de 3 perguntas usadas</strong></div><div class="progress"><span></span></div>
+          <div class="mini-input"><span>Digite sua dúvida aqui...</span><span class="mini-send">↑</span></div>
+          <p style="font-size:.72rem;color:var(--muted);margin:12px 2px 0">Ilustração demonstrativa da experiência de estudo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="proof-strip"><div class="container proof-grid">
+    <div class="proof-item"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg><span><strong>Comece com clareza</strong>Saiba como funciona antes de assinar</span></div>
+    <div class="proof-item"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span><strong>Aprenda no seu ritmo</strong>Faça perguntas quando precisar</span></div>
+    <div class="proof-item"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8M8 11h7"/></svg><span><strong>Um espaço para explorar</strong>Descubra as disciplinas disponíveis</span></div>
+  </div></div>
+  <section id="recursos"><div class="container">
+    <div class="section-head"><span class="kicker">Feito para apoiar seus estudos</span><h2>Mais confiança para fazer perguntas. Mais clareza para aprender.</h2><p>Uma experiência de aprendizagem pensada para ajudar você a explorar assuntos, organizar dúvidas e avançar passo a passo.</p></div>
+    <div class="features">
+      <article class="feature"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 14.5 9.5 21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></svg></div><h3>Tutores virtuais</h3><p>Faça perguntas sobre a disciplina escolhida e receba explicações para apoiar sua compreensão.</p></article>
+      <article class="feature"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01M8 15c2.5 2 5.5 2 8 0"/></svg></div><h3>Seu mascote, seu jeito</h3><p>Escolha coruja, borboleta, cachorro ou gato. Cada animal terá personalidade própria e poderá conversar, reagir e acompanhar você durante o uso da plataforma.</p></article>
+      <article class="feature"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg></div><h3>Mais que um tutor</h3><p>Além de explicar matérias, o mascote poderá ajudar a organizar ideias, responder perguntas gerais, propor desafios, conversar e brincar com você.</p></article>
+      <article class="feature"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 10h8M8 14h5"/><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/></svg></div><h3>Conversa com contexto</h3><p>Retome o fio da conversa durante seus estudos e aprofunde o tema com novas perguntas.</p></article>
+      <article class="feature"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8M8 11h6"/></svg></div><h3>Disciplinas em um só lugar</h3><p>Escolha entre os tutores e assuntos disponibilizados na plataforma para direcionar sua sessão de estudo.</p></article>
+      <article class="feature"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h3>Aprenda no seu ritmo</h3><p>Estude no seu tempo e formule as perguntas do jeito que fizer sentido para você.</p></article>
+      <article class="feature"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg></div><h3>Experimente antes de assinar</h3><p>Crie sua conta e use três perguntas gratuitas para conhecer a experiência antes de decidir.</p></article>
+      <article class="feature"><div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>Informação transparente</h3><p>Entenda o que está incluído no teste e saiba que a assinatura não deve ser confundida com uma cobrança automática.</p></article>
+    </div>
+  </div></section>
+  <section class="how" id="como-funciona"><div class="container">
+    <div class="section-head"><span class="kicker">Simples para começar</span><h2>Três passos para conhecer o Mente Saber</h2><p>Você pode experimentar primeiro e decidir com mais informação se a plataforma faz sentido para sua rotina.</p></div>
+    <div class="steps">
+      <article class="step"><div class="step-number">01</div><h3>Crie sua conta</h3><p>Informe seu nome, e-mail e crie uma senha para acessar seu espaço de estudos.</p></article>
+      <article class="step"><div class="step-number">02</div><h3>Escolha seu companheiro</h3><p>Selecione coruja, borboleta, cachorro ou gato. O mascote será seu tutor de estudos e também um companheiro para conversar, pedir ajuda e se divertir.</p></article>
+      <article class="step"><div class="step-number">03</div><h3>Aprenda, converse e brinque</h3><p>Faça perguntas, peça ajuda em outras tarefas ou convide seu mascote para um desafio ou uma brincadeira.</p></article>
+    </div>
+  </div></section>
+  <section id="planos"><div class="container">
+    <div class="section-head"><span class="kicker">Planos e acesso</span><h2>Experimente antes de escolher</h2><p>Veja a proposta de acesso com clareza. Sem pressão para decidir antes de conhecer a experiência.</p></div>
+    <div class="plan-wrap">
+      <article class="plan"><span class="plan-badge">Para conhecer</span><h3>Teste gratuito</h3><p class="plan-desc">Experimente os tutores virtuais antes de decidir.</p><div class="price">R$ 0 <small>/ teste</small></div><ul><li><span class="check">✓</span><span>Cadastro de uma conta</span></li><li><span class="check">✓</span><span>3 perguntas gratuitas</span></li><li><span class="check">✓</span><span>Conheça a experiência de estudo</span></li></ul><button class="btn btn-outline" data-open-signup>Criar conta grátis</button></article>
+      <article class="plan featured"><span class="plan-badge">Acesso mensal proposto</span><h3>Mente Saber Premium</h3><p class="plan-desc">Para quem quer continuar estudando após o teste gratuito.</p><div class="price">R$ 35<small>,00 / mês</small></div><ul><li><span class="check">✓</span><span>Continuação do acesso aos tutores virtuais</span></li><li><span class="check">✓</span><span>Uso sujeito à política de uso justo</span></li><li><span class="check">✓</span><span>Consulte as condições antes de contratar</span></li></ul><button class="btn btn-primary" data-open-signup>Experimentar antes de assinar</button></article>
+    </div>
+    <p class="disclaimer">O valor mensal exibido é a proposta atual do produto. A cobrança online não é iniciada por esta página demonstrativa; antes da publicação, as condições comerciais e a integração de assinatura devem ser confirmadas.</p>
+  </div></section>
+  <section class="trust-section"><div class="container trust-grid">
+    <div class="trust-copy"><span class="kicker">Confiança começa com transparência</span><h2>Você merece saber o que está usando.</h2><p>O Mente Saber foi pensado para tornar o estudo mais acessível. Uma apresentação clara, informações honestas e orientações visíveis ajudam você a decidir sem sustos.</p><p>Como em qualquer ferramenta de inteligência artificial, vale conferir informações importantes em materiais de estudo confiáveis e com seus professores.</p></div>
+    <div class="trust-list">
+      <div class="trust-row"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg><div><strong>Cadastro com informação clara</strong><p>Explique quais dados são necessários, para que serão usados e como o usuário pode pedir suporte.</p></div></div>
+      <div class="trust-row"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><div><strong>Contato e suporte identificáveis</strong><p>Antes de publicar, inclua um e-mail de atendimento real e um canal para dúvidas sobre a conta.</p></div></div>
+      <div class="trust-row"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><div><strong>Privacidade e termos acessíveis</strong><p>Disponibilize Política de Privacidade e Termos de Uso reais, revisados e adequados ao serviço.</p></div></div>
+    </div>
+  </div></section>
+  <section id="duvidas"><div class="container">
+    <div class="section-head"><span class="kicker">Perguntas frequentes</span><h2>O que você precisa saber</h2><p>Respostas diretas para começar com tranquilidade.</p></div>
+    <div class="faq">
+      <details><summary>Como funciona o teste gratuito?</summary><p>Primeiro, você cria uma conta. Depois, pode fazer três perguntas gratuitas ao tutor virtual para conhecer a experiência. A proposta é permitir que você teste antes de decidir sobre uma assinatura.</p></details>
+      <details><summary>Vou ser cobrado automaticamente após as três perguntas?</summary><p>O teste gratuito apresentado aqui não deve ser comunicado como uma cobrança automática. A contratação paga precisa ser uma ação clara, com preço e condições informados antes da confirmação.</p></details>
+      <details><summary>O tutor virtual pode errar?</summary><p>Sim. Respostas geradas por inteligência artificial podem conter imprecisões. Use o tutor como apoio ao aprendizado e confira informações importantes com fontes confiáveis ou professores.</p></details>
+      <details><summary>O mascote só serve para estudar?</summary><p>Não. A proposta é que ele também possa conversar, ajudar em tarefas gerais, sugerir desafios e brincar com você. As funções disponíveis dependerão dos recursos implementados na plataforma.</p></details>
+      <details><summary>Quais disciplinas estão disponíveis?</summary><p>As disciplinas disponíveis aparecem dentro da plataforma. A lista pode evoluir com o produto; consulte o ambiente de estudos para conferir as opções atuais.</p></details>
+      <details><summary>Como meus dados são tratados?</summary><p>Consulte a Política de Privacidade oficial do serviço antes de se cadastrar. Ela deve explicar os dados coletados, as finalidades, o período de retenção e como entrar em contato para exercer seus direitos.</p></details>
+      <details><summary>Como posso falar com a equipe?</summary><p>Antes de colocar esta página no ar, adicione aqui um endereço de e-mail de suporte monitorado e, se houver, outros canais oficiais de atendimento.</p></details>
+    </div>
+  </div></section>
+  <section class="final-cta"><div class="container"><div class="cta-panel"><div><h2>Seu aprendizado pode começar com uma pergunta.</h2><p>Crie sua conta, experimente três perguntas e conheça o Mente Saber no seu ritmo.</p></div><button class="btn" data-open-signup>Começar gratuitamente <span aria-hidden="true">→</span></button></div></div></section>
+</main>
+<footer><div class="container footer-inner"><div><a class="brand" href="#inicio"><span class="brand-mark">✦</span><span>Mente Saber</span></a><div class="footer-copy" style="margin-top:10px">Um espaço para aprender, perguntar e evoluir.<br>© <span id="year"></span> Mente Saber. Todos os direitos reservados.</div></div><nav class="footer-links" aria-label="Links legais"><a href="#privacidade" data-legal="privacidade">Política de Privacidade</a><a href="#termos" data-legal="termos">Termos de Uso</a><a href="#duvidas">Perguntas frequentes</a></nav></div></footer>
+</div>
+<div class="modal-backdrop" id="signup-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-head"><div><span class="kicker" id="modal-kicker">Seu primeiro passo</span><h2 id="modal-title">Crie sua conta</h2></div><button class="close" type="button" aria-label="Fechar" data-close-modal>×</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0"><button class="btn btn-primary" type="button" id="tab-signup">Criar conta</button><button class="btn btn-outline" type="button" id="tab-login">Entrar</button></div>
+    <p id="modal-description">Cadastre-se para conhecer o Mente Saber e experimentar três perguntas gratuitas.</p>
+    <div class="form-note"><strong>Modo de teste local:</strong> você poderá cadastrar uma conta e entrar novamente neste navegador. Os dados ficam apenas neste navegador; isso não é autenticação segura para publicar em produção.</div>
+    <form id="demo-form">
+      <label for="name">Seu nome</label><input id="name" name="name" autocomplete="name" placeholder="Como podemos chamar você?" required>
+      <label for="email">E-mail</label><input id="email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required>
+      <label for="password">Crie uma senha</label><input id="password" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Pelo menos 8 caracteres" required>
+      <button class="btn btn-primary" id="form-submit" type="submit">Criar conta</button>
+    </form>
+    <p class="modal-small" style="text-align:center"><span id="switch-prompt">Já tem uma conta?</span> <button type="button" id="switch-auth" style="border:0;background:none;color:var(--site-primary);font-weight:800;cursor:pointer">Entrar</button></p>
+    <p class="modal-small">Ao publicar, inclua links reais para os Termos de Uso e a Política de Privacidade e explique como os dados serão utilizados.</p>
+    <div id="form-result" aria-live="polite"></div>
+  </div>
+</div>
+<script>
+const modal = document.getElementById('signup-modal');
+const nameInput = document.getElementById('name');
+let authMode = 'signup';
+function setAuthMode(mode) {
+  authMode = mode;
+  const login = mode === 'login';
+  document.getElementById('modal-kicker').textContent = login ? 'Bem-vindo de volta' : 'Seu primeiro passo';
+  document.getElementById('modal-title').textContent = login ? 'Entre na sua conta' : 'Crie sua conta';
+  document.getElementById('modal-description').textContent = login ? 'Informe seu e-mail e sua senha para acessar sua conta.' : 'Cadastre-se para conhecer o Mente Saber e experimentar três perguntas gratuitas.';
+  document.getElementById('name').parentElement.querySelector('label').style.display = login ? 'none' : 'block';
+  document.getElementById('name').style.display = login ? 'none' : 'block';
+  document.getElementById('name').required = !login;
+  document.getElementById('password').autocomplete = login ? 'current-password' : 'new-password';
+  document.getElementById('form-submit').textContent = login ? 'Entrar' : 'Criar conta';
+  document.getElementById('tab-signup').className = 'btn ' + (login ? 'btn-outline' : 'btn-primary');
+  document.getElementById('tab-login').className = 'btn ' + (login ? 'btn-primary' : 'btn-outline');
+  document.getElementById('switch-prompt').textContent = login ? 'Ainda não tem uma conta?' : 'Já tem uma conta?';
+  document.getElementById('switch-auth').textContent = login ? 'Cadastre-se' : 'Entrar';
+  document.getElementById('form-result').innerHTML = '';
+}
+function openModal() { setAuthMode('signup'); modal.classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(() => nameInput.focus(), 50); }
+function openLogin() { setAuthMode('login'); modal.classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(() => document.getElementById('email').focus(), 50); }
+function closeModal() { modal.classList.remove('open'); document.body.style.overflow = ''; }
+document.querySelectorAll('[data-open-signup]').forEach(button => button.addEventListener('click', openModal));
+document.querySelectorAll('[data-open-login]').forEach(button => button.addEventListener('click', openLogin));
+document.getElementById('tab-signup').addEventListener('click', () => setAuthMode('signup'));
+document.getElementById('tab-login').addEventListener('click', () => setAuthMode('login'));
+document.getElementById('switch-auth').addEventListener('click', () => setAuthMode(authMode === 'login' ? 'signup' : 'login'));
+document.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', closeModal));
+modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
+document.getElementById('demo-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const result = document.getElementById('form-result');
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const password = document.getElementById('password').value;
+  const storageKey = 'menteSaber_demo_users_v1';
+  const showResult = (message, success = false) => {
+    result.innerHTML = '';
+    const box = document.createElement('div');
+    box.className = 'form-note';
+    box.setAttribute('role', 'status');
+    box.style.background = success ? '#E7F8F0' : 'var(--site-secondary)';
+    box.style.color = success ? '#145C42' : 'var(--site-on-secondary)';
+    box.textContent = message;
+    result.appendChild(box);
+  };
+  try {
+    const users = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    const digest = async value => {
+      const bytes = new TextEncoder().encode(value);
+      const hash = await crypto.subtle.digest('SHA-256', bytes);
+      return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, '0')).join('');
+    };
+    if (authMode === 'signup') {
+      if (password.length < 8) return showResult('A senha precisa ter pelo menos 8 caracteres.');
+      if (users[email]) return showResult('Já existe uma conta de teste com este e-mail. Clique em Entrar.');
+      users[email] = { name, passwordHash: await digest(password) };
+      localStorage.setItem(storageKey, JSON.stringify(users));
+      showResult('Conta de teste criada! Agora você já pode entrar com este e-mail e senha neste navegador.', true);
+      document.getElementById('demo-form').reset();
+      setAuthMode('login');
+      document.getElementById('email').value = email;
+    } else {
+      if (!users[email] || users[email].passwordHash !== await digest(password)) {
+        return showResult('E-mail ou senha incorretos. Confira os dados ou crie uma conta de teste.');
+      }
+      showResult('Login de teste realizado com sucesso. Olá, ' + users[email].name + '! A autenticação ainda é local e não libera o aplicativo real.', true);
+    }
+  } catch (error) {
+    showResult('Não foi possível salvar ou verificar a conta neste navegador. Abra a página em uma janela normal do navegador e tente novamente.');
+  }
+});
+document.querySelectorAll('[data-legal]').forEach(link => link.addEventListener('click', event => {
+  event.preventDefault(); openModal(); document.getElementById('form-result').innerHTML = '<div class="form-note">Este link é provisório. Antes de publicar, substitua-o pela página oficial de ' + (link.dataset.legal === 'privacidade' ? 'Política de Privacidade' : 'Termos de Uso') + '.</div>';
+}));
+document.getElementById('year').textContent = new Date().getFullYear();
+const mascotProfiles = {
+  coruja: { emoji: '🦉', name: 'Olívia, a corujinha', description: 'Sábia, curiosa e adorável — pronta para ajudar você a descobrir coisas novas.', greeting: 'Uhuu! 🦉 Vamos aprender juntos? Tenho ideias e curiosidades para compartilhar com você.', art: '<svg viewBox="0 0 140 160"><ellipse cx="70" cy="145" rx="34" ry="6" fill="#b8c9f4" opacity=".55"/><path d="M42 55 34 25 60 42 M98 55 106 25 80 42" fill="#b77b42" stroke="#754526" stroke-width="2"/><ellipse cx="70" cy="78" rx="39" ry="47" fill="#b77b42" stroke="#754526" stroke-width="2"/><ellipse cx="70" cy="91" rx="25" ry="31" fill="#f5dfb5"/><circle cx="56" cy="72" r="15" fill="#fff5df"/><circle cx="84" cy="72" r="15" fill="#fff5df"/><circle cx="57" cy="73" r="6" fill="#26314d"/><circle cx="83" cy="73" r="6" fill="#26314d"/><circle cx="59" cy="71" r="2" fill="white"/><circle cx="85" cy="71" r="2" fill="white"/><path d="M70 81 62 89 78 89Z" fill="#f0a83d"/><path d="M53 116 49 137 65 137 70 120 75 137 91 137 87 116" fill="#4775df"/><path d="M42 136h23 M75 136h23" stroke="#e9a43c" stroke-width="5" stroke-linecap="round"/><circle cx="70" cy="110" r="4" fill="#d8a15b"/></svg>' },
+  borboleta: { emoji: '🦋', name: 'Fifi, a borboletinha', description: 'Gentil, colorida e curiosa — aprender com você é a parte mais divertida do dia.', greeting: 'Bzzz! 🦋 Vamos estudar, conversar e depois brincar? Estou animada para acompanhar você!', art: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 160" width="140" height="160" role="img" aria-label="Fifi, a borboletinha" style="display:block;max-width:100%;overflow:visible"><ellipse cx="70" cy="145" rx="35" ry="6" fill="#b8c9f4" opacity=".55"/><path d="M68 80 C40 30 8 40 18 78 C22 96 50 98 68 86Z" fill="#c98cf0" stroke="#7a4fb0" stroke-width="2"/><path d="M72 80 C100 30 132 40 122 78 C118 96 90 98 72 86Z" fill="#c98cf0" stroke="#7a4fb0" stroke-width="2"/><path d="M68 90 C45 92 28 112 40 128 C54 138 66 112 68 98Z" fill="#7fb7ff" stroke="#3f78c4" stroke-width="2"/><path d="M72 90 C95 92 112 112 100 128 C86 138 74 112 72 98Z" fill="#7fb7ff" stroke="#3f78c4" stroke-width="2"/><circle cx="36" cy="64" r="7" fill="#fff" opacity=".7"/><circle cx="104" cy="64" r="7" fill="#fff" opacity=".7"/><ellipse cx="70" cy="88" rx="6" ry="28" fill="#4a3a63"/><circle cx="70" cy="58" r="9" fill="#4a3a63"/><circle cx="66.5" cy="57" r="2" fill="#fff"/><circle cx="73.5" cy="57" r="2" fill="#fff"/><path d="M66 51 Q58 36 50 34 M74 51 Q82 36 90 34" fill="none" stroke="#4a3a63" stroke-width="2" stroke-linecap="round"/><circle cx="50" cy="34" r="2.5" fill="#4a3a63"/><circle cx="90" cy="34" r="2.5" fill="#4a3a63"/></svg>' },
+  cachorro: { emoji: '🐶', name: 'Bolt, seu companheiro', description: 'Animado, curioso e pronto para aprender e brincar com você.', greeting: 'Au au! 🐾 Vamos aprender juntos e depois brincar? Escolha um modo acima para ver como eu acompanho você.', art: document.getElementById('mascot-face').innerHTML },
+  gato: { emoji: '🐱', name: 'Mimi, sua companheira', description: 'Esperta, independente e cheia de curiosidade para explorar assuntos.', greeting: 'Miau! 😺 Que tal descobrir algo novo, conversar um pouco ou testar um desafio?', art: '<svg viewBox="0 0 140 160"><ellipse cx="70" cy="145" rx="34" ry="6" fill="#b8c9f4" opacity=".55"/><path d="M38 60 35 25 60 43 M102 60 105 25 80 43" fill="#e8a6a0" stroke="#8f5360" stroke-width="2"/><path d="M39 48 Q70 25 101 48 Q112 82 99 105 Q88 122 70 122 Q52 122 41 105 Q28 82 39 48Z" fill="#f1b7ae" stroke="#a76570" stroke-width="2"/><ellipse cx="56" cy="73" rx="5" ry="7" fill="#26314d"/><ellipse cx="84" cy="73" rx="5" ry="7" fill="#26314d"/><circle cx="58" cy="71" r="1.5" fill="white"/><circle cx="86" cy="71" r="1.5" fill="white"/><path d="M70 83 64 88 76 88Z" fill="#a76570"/><path d="M70 88 Q63 96 57 91 M70 88 Q77 96 83 91" fill="none" stroke="#8f5360" stroke-width="2" stroke-linecap="round"/><path d="M45 82 25 78 M45 89 25 92 M95 82 115 78 M95 89 115 92" stroke="#8f5360" stroke-width="1.8" stroke-linecap="round"/><path d="M48 112 Q70 123 92 112 L90 131 Q70 140 50 131Z" fill="#4775df"/><path d="M48 139h17 M75 139h17" stroke="#a76570" stroke-width="4" stroke-linecap="round"/><path d="M99 119 Q121 117 112 99" fill="none" stroke="#f1b7ae" stroke-width="8" stroke-linecap="round"/></svg>' }
+};
+let selectedMascot = 'cachorro';
+let selectedMode = 'estudar';
+let voiceEnabled = false;
+let mascot3D = null;
+async function initMascot3D() {
+  const face = document.getElementById('mascot-face');
+  if (mascot3D || !face) return;
+  try {
+    const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#edf2ff');
+    const camera = new THREE.PerspectiveCamera(32, 148 / 166, 0.1, 100);
+    camera.position.set(0, 0.15, 5.8);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(Math.max(100, face.clientWidth), Math.max(120, face.clientHeight), false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    face.innerHTML = '';
+    face.classList.add('is-3d');
+    face.appendChild(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x7182aa, 2.1));
+    const key = new THREE.DirectionalLight(0xffffff, 2.8);
+    key.position.set(-3, 5, 5); key.castShadow = true; scene.add(key);
+    const fill = new THREE.DirectionalLight(0xb7ccff, 1.5); fill.position.set(4, 1, -2); scene.add(fill);
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(1.05, 40), new THREE.MeshStandardMaterial({ color: '#c9d6f7', roughness: 1 }));
+    ground.rotation.x = -Math.PI / 2; ground.position.y = -1.02; ground.scale.set(1.1, .55, 1); ground.receiveShadow = true; scene.add(ground);
+    const animal = new THREE.Group(); scene.add(animal);
+    const mat = (color, roughness=.78) => new THREE.MeshStandardMaterial({ color, roughness });
+    const make = (geometry, material, x, y, z, sx=1, sy=1, sz=1) => {
+      const mesh = new THREE.Mesh(geometry, material); mesh.position.set(x,y,z); mesh.scale.set(sx,sy,sz); mesh.castShadow = true; mesh.receiveShadow = true; animal.add(mesh); return mesh;
+    };
+    const sphere = new THREE.SphereGeometry(1, 28, 20);
+    const cone = new THREE.ConeGeometry(.34, .7, 24);
+    const cylinder = new THREE.CylinderGeometry(.09,.12,.36,16);
+    const clearAnimal = () => { while(animal.children.length) { const o=animal.children.pop(); o.geometry?.dispose(); if(Array.isArray(o.material)) o.material.forEach(m=>m.dispose()); else o.material?.dispose(); } };
+    function buildAnimal(type) {
+      clearAnimal();
+      const eye=mat('#20283c',.25), shine=mat('#ffffff',.2), belly=mat('#fff0d8'), blue=mat('#4775df'), pink=mat('#e99eaa');
+      if(type==='coruja') {
+        const brown=mat('#a96f3e'), cream=mat('#f5dfb5'), orange=mat('#f0a83d');
+        make(sphere,brown,0,-.05,0,.72,.88,.52); make(sphere,cream,0,-.35,.43,.48,.52,.17);
+        make(cone,brown,-.43,.73,0,.7,.9,.7).rotation.z=.5; make(cone,brown,.43,.73,0,.7,.9,.7).rotation.z=-.5;
+        [-.28,.28].forEach(x=>{make(sphere,cream,x,.25,.43,.28,.3,.12);make(sphere,eye,x,.24,.55,.12,.14,.07);make(sphere,shine,x-.035,.29,.61,.035,.04,.02)});
+        const beak=make(new THREE.ConeGeometry(.12,.22,16),orange,0,.04,.58); beak.rotation.x=.25;
+        [-.25,.25].forEach(x=>make(cylinder,orange,x,-.85,.05,.7,.7,.7));
+      } else if(type==='borboleta') {
+        const wingA=mat('#c98cf0'), wingB=mat('#7fb7ff'), bodyM=mat('#4a3a63');
+        make(sphere,bodyM,0,-.1,0,.13,.58,.13); make(sphere,bodyM,0,.52,.04,.18,.18,.16);
+        make(sphere,wingA,-.52,.32,0,.5,.55,.07).rotation.z=.4; make(sphere,wingA,.52,.32,0,.5,.55,.07).rotation.z=-.4;
+        make(sphere,wingB,-.4,-.38,0,.36,.4,.07).rotation.z=-.4; make(sphere,wingB,.4,-.38,0,.36,.4,.07).rotation.z=.4;
+        [-.07,.07].forEach(x=>make(sphere,shine,x,.55,.17,.04,.045,.03));
+        [-1,1].forEach(k=>make(sphere,bodyM,k*.14,.85,.04,.03,.2,.03).rotation.z=-k*.4);
+      } else if(type==='gato') {
+        const fur=mat('#d9dce5'), pale=mat('#f8f4f1'), inner=mat('#e88da7'), stripe=mat('#858da2'), iris=mat('#8fc66d'), nose=mat('#d97891');
+        make(sphere,fur,0,-.2,-.02,.56,.72,.48);
+        make(sphere,fur,0,.39,.08,.66,.61,.5);
+        [-.43,.43].forEach((x,i)=>{const ear=make(cone,fur,x,.86,.03,.72,1.18,.62); ear.rotation.z=i===0?.24:-.24;make(cone,inner,x,.88,.22,.39,.76,.28).rotation.z=i===0?.24:-.24});
+        [-.25,.25].forEach(x=>{make(sphere,pale,x,.34,.49,.2,.22,.07);make(sphere,iris,x,.36,.55,.105,.13,.045);make(sphere,eye,x,.36,.59,.045,.105,.025);make(sphere,shine,x-.025,.405,.615,.025,.03,.012)});
+        make(sphere,pale,0,.12,.52,.29,.19,.1);
+        make(new THREE.ConeGeometry(.075,.09,3),nose,0,.17,.625,.85,.7,.65).rotation.x=Math.PI/2;
+        const mouthMat=mat('#7c6471');
+        [-1,1].forEach(side=>{const mouth=make(new THREE.CylinderGeometry(.012,.012,.12,8),mouthMat,side*.045,.085,.61); mouth.rotation.z=side*.55;});
+        [-1,1].forEach(side=>[-.03,.08,.19].forEach(y=>{const whisk=make(new THREE.CylinderGeometry(.006,.006,.32,6),stripe,side*.42,y,.55); whisk.rotation.z=side*(y<.05?-.12:.12);}));
+        [-.23,0,.23].forEach((x,i)=>{const mark=make(sphere,stripe,x,.78,.37,.035,.14,.025); mark.rotation.z=x*.7;});
+        make(sphere,pale,0,-.48,.37,.32,.31,.13);
+        make(sphere,blue,0,-.82,.12,.35,.1,.25);
+        [-.34,.34].forEach(x=>make(sphere,fur,x,-.76,.05,.13,.22,.13));
+      } else {
+        const fur=mat('#e9b879'), brown=mat('#a96b3e'), muzzle=mat('#fff0d8'), nose=mat('#49352c');
+        make(sphere,fur,0,-.15,0,.67,.78,.55); make(sphere,fur,0,.47,.02,.65,.58,.52);
+        make(sphere,brown,-.53,.52,.02,.24,.48,.2).rotation.z=-.3; make(sphere,brown,.53,.52,.02,.24,.48,.2).rotation.z=.3;
+        make(sphere,muzzle,0,.25,.45,.36,.23,.18);
+        [-.25,.25].forEach(x=>{make(sphere,eye,x,.55,.47,.065,.085,.05);make(sphere,shine,x-.02,.58,.52,.022,.025,.015)});
+        make(sphere,nose,0,.31,.62,.11,.08,.07); make(sphere,blue,0,-.78,.2,.4,.12,.3);
+        [-.35,.35].forEach(x=>make(sphere,fur,x,-.78,.02,.13,.26,.14));
+      }
+    }
+    buildAnimal(selectedMascot);
+    let frame=0, pointerDown=false, lastX=0;
+    renderer.domElement.addEventListener('pointerdown',e=>{pointerDown=true;lastX=e.clientX;renderer.domElement.setPointerCapture(e.pointerId)});
+    renderer.domElement.addEventListener('pointermove',e=>{if(pointerDown){animal.rotation.y+=(e.clientX-lastX)*.012;lastX=e.clientX}});
+    renderer.domElement.addEventListener('pointerup',()=>pointerDown=false);
+    renderer.domElement.addEventListener('pointercancel',()=>pointerDown=false);
+    const resize=()=>{const w=Math.max(100,face.clientWidth),h=Math.max(120,face.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};
+    new ResizeObserver(resize).observe(face);
+    const animate=()=>{frame=requestAnimationFrame(animate);if(!pointerDown)animal.rotation.y+=.003;animal.position.y=Math.sin(performance.now()*.0018)*.045;renderer.render(scene,camera)};
+    animate();
+    mascot3D={buildAnimal,renderer,scene,camera,animal,dispose:()=>cancelAnimationFrame(frame)};
+  } catch(error) {
+    console.warn('Mascote 3D indisponível; mantendo ilustração original.', error);
+    face.classList.remove('is-3d');
+  }
+}
+const modeGreetings = {
+  estudar: 'Vamos por partes: me diga o que você quer aprender e eu ajudo a entender, com exemplos e perguntas.',
+  conversar: 'Pode puxar assunto! Podemos conversar sobre ideias, rotina, interesses ou planejar o que você precisa fazer.',
+  brincar: 'Hora do desafio! Escolha uma brincadeira: adivinhação, quiz rápido ou jogo de palavras.'
+};
+function updateMascot() {
+  const profile = mascotProfiles[selectedMascot];
+  const mascotFace = document.getElementById('mascot-face');
+  if (mascot3D) mascot3D.buildAnimal(selectedMascot);
+  else mascotFace.innerHTML = profile.art;
+  if (mascot3D) {
+    document.getElementById('mascot-name').textContent = profile.name;
+    document.getElementById('mascot-description').textContent = profile.description;
+    document.getElementById('chat-mascot-name').textContent = profile.name;
+    document.getElementById('mascot-greeting').textContent = selectedMode === 'estudar' ? profile.greeting : modeGreetings[selectedMode];
+    document.querySelectorAll('[data-avatar]').forEach(button => { const active = button.dataset.avatar === selectedMascot; button.classList.toggle('selected', active); button.setAttribute('aria-pressed', String(active)); });
+    return;
+  }
+  const mascotSvg = mascotFace.querySelector('svg');
+  if (mascotSvg) {
+    mascotSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    mascotSvg.setAttribute('viewBox', mascotSvg.getAttribute('viewBox') || '0 0 140 160');
+    mascotSvg.setAttribute('width', '140');
+    mascotSvg.setAttribute('height', '160');
+    mascotSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    mascotSvg.style.display = 'block';
+    mascotSvg.style.width = '100%';
+    mascotSvg.style.height = '100%';
+    mascotSvg.style.maxWidth = '140px';
+    mascotSvg.style.maxHeight = '160px';
+    mascotSvg.style.flex = '0 1 auto';
+  }
+  document.getElementById('mascot-name').textContent = profile.name;
+  document.getElementById('mascot-description').textContent = profile.description;
+  document.getElementById('chat-mascot-name').textContent = profile.name;
+  document.getElementById('mascot-greeting').textContent = selectedMode === 'estudar' ? profile.greeting : modeGreetings[selectedMode];
+  document.querySelectorAll('[data-avatar]').forEach(button => {
+    const active = button.dataset.avatar === selectedMascot;
+    button.classList.toggle('selected', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+document.querySelectorAll('[data-avatar]').forEach(button => button.addEventListener('click', () => {
+  selectedMascot = button.dataset.avatar;
+  updateMascot();
+}));
+document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => {
+  selectedMode = button.dataset.mode;
+  document.querySelectorAll('[data-mode]').forEach(item => item.classList.toggle('active', item === button));
+  updateMascot();
+  if (voiceEnabled && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(document.getElementById('mascot-greeting').textContent));
+  }
+}));
+document.getElementById('voice-toggle').addEventListener('click', event => {
+  voiceEnabled = !voiceEnabled;
+  event.currentTarget.classList.toggle('active', voiceEnabled);
+  event.currentTarget.setAttribute('aria-pressed', String(voiceEnabled));
+  event.currentTarget.textContent = voiceEnabled ? '🔇 Desativar voz' : '🔊 Ouvir resposta';
+  if (voiceEnabled && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(document.getElementById('mascot-greeting').textContent));
+  } else if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+});
+updateMascot();
+initMascot3D().then(() => { if (mascot3D) updateMascot(); });
+</script>
+</body>
+</html>
