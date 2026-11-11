@@ -30,14 +30,36 @@ AVATAR_PERSONAS = {
 }
 
 
-# Vozes pré-construídas do Gemini TTS.
-# Se alguma voz não estiver disponível na conta/região, a função de áudio
-# captura a falha e retorna None sem interromper a resposta em texto.
+# Mapeamento corrigido das vozes pré-construídas do Gemini TTS:
+# - Aoede: voz feminina articulada e calorosa (Olívia / Fifi)
+# - Puck: voz masculina jovem, animada e dinâmica (Bolt)
+# - Kore: voz feminina suave, relaxada e delicada (Mimi)
 AVATAR_VOICES = {
-    "coruja": "Fenrir",
-    "borboleta": "Kore",
-    "cachorro": "Puck",
-    "gato": "Aoede",
+    "coruja": "Aoede",      # Olívia: Feminina, acolhedora, suave e didática
+    "borboleta": "Aoede",   # Fifi: Feminina, alegre, infantil e expressiva
+    "cachorro": "Puck",     # Bolt: Masculino, divertido, energético e jovem
+    "gato": "Kore",         # Mimi: Feminina, doce, delicada e carinhosa
+}
+
+# Instruções de prosódia enviadas ao sintetizador de áudio do Gemini para
+# conferir personalidade única a cada avatar sem depender apenas da voz base.
+AVATAR_AUDIO_PROMPTS = {
+    "coruja": (
+        "Fale como Olívia: voz feminina, acolhedora, suave e didática, "
+        "com ritmo pausado, articulação clara e tom encorajador para crianças."
+    ),
+    "borboleta": (
+        "Fale como Fifi: voz feminina, alegre, infantil, leve, entusiasmada "
+        "e muito expressiva!"
+    ),
+    "cachorro": (
+        "Fale como Bolt: voz masculina jovem, divertida, leal, "
+        "energética e bastante amigável!"
+    ),
+    "gato": (
+        "Fale como Mimi: voz feminina, doce, delicada, tranquila e carinhosa, "
+        "com ritmo sereno e tom acolhedor."
+    ),
 }
 
 
@@ -557,7 +579,8 @@ def generate_audio_for_avatar(text, avatar=None):
     Retorna os bytes do áudio ou None se a geração falhar.
 
     A geração de áudio é independente da resposta em texto.
-    A chamada usa models.generate_content, conforme o SDK google-genai.
+    A chamada usa models.generate_content, conforme o SDK google-genai,
+    injetando a instrução de prosódia e voz específica de cada personagem.
     """
     texto = str(text or "").strip()
     if not texto:
@@ -569,8 +592,12 @@ def generate_audio_for_avatar(text, avatar=None):
         return None
 
     avatar_key = str(avatar or "").strip().lower()
-    voice_name = AVATAR_VOICES.get(avatar_key, "Puck")
-    modelo_audio = _get_setting("GEMINI_TTS_MODEL", "gemini-3.8-flash-tts")
+    voice_name = AVATAR_VOICES.get(avatar_key, "Aoede")
+    system_audio_prompt = AVATAR_AUDIO_PROMPTS.get(
+        avatar_key,
+        "Fale de forma clara, acolhedora e natural para crianças."
+    )
+    modelo_audio = _get_setting("GEMINI_TTS_MODEL", "gemini-2.5-flash")
 
     try:
         client = genai.Client(
@@ -579,7 +606,7 @@ def generate_audio_for_avatar(text, avatar=None):
         )
 
         print(
-            f"Iniciando geração de áudio: modelo={modelo_audio}, "
+            f"Iniciando geração de áudio: avatar='{avatar_key}', modelo={modelo_audio}, "
             f"voz={voice_name}"
         )
 
@@ -587,6 +614,7 @@ def generate_audio_for_avatar(text, avatar=None):
             model=modelo_audio,
             contents=texto,
             config=types.GenerateContentConfig(
+                system_instruction=system_audio_prompt,
                 response_modalities=["AUDIO"],
                 speech_config=types.SpeechConfig(
                     voice_config=types.VoiceConfig(
