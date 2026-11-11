@@ -144,9 +144,11 @@ def _is_temporary_overload(error) -> bool:
     message = str(error).upper()
     status_code = getattr(error, "code", None) or getattr(error, "status_code", None)
     return (
-        str(status_code) == "503"
+        str(status_code) in {"503", "504"}
         or "503" in message
+        or "504" in message
         or "UNAVAILABLE" in message
+        or "DEADLINE_EXCEEDED" in message
         or "HIGH DEMAND" in message
     )
 
@@ -378,7 +380,7 @@ QUALIDADE E SEGURANÇA:
         # Timeout em milissegundos: evita deixar a tela presa indefinidamente.
         client = genai.Client(
             api_key=api_key,
-            http_options=types.HttpOptions(timeout=10000),
+            http_options=types.HttpOptions(timeout=30000),
         )
         print("Mente Saber: consultando modelos Gemini disponíveis...", flush=True)
         candidate_models = _get_available_text_models(client, max_models=2)
@@ -421,18 +423,34 @@ QUALIDADE E SEGURANÇA:
                     if _is_temporary_overload(model_error):
                         print(
                             f"Mente Saber: {candidate_model} retornou "
-                            f"indisponibilidade temporária: {model_error}",
+                            f"indisponibilidade temporária (503/504): "
+                            f"{type(model_error).__name__}: {model_error}",
                             flush=True,
                         )
                         if attempt < tentativas:
-                            time.sleep(1)
+                            print(
+                                "Mente Saber: repetindo uma vez o mesmo modelo.",
+                                flush=True,
+                            )
+                            time.sleep(2)
                             continue
+                        print(
+                            f"Mente Saber: esgotadas as tentativas de "
+                            f"{candidate_model}; seguirá para o próximo modelo, "
+                            "se houver.",
+                            flush=True,
+                        )
                         break
 
-                    # Se um modelo foi removido ou não está acessível,
-                    # tenta somente a segunda opção, se houver.
+                    # Para 404/NOT_FOUND ou limite 429, tenta o próximo
+                    # modelo disponível, se houver.
                     if (
-                        ("404" in mensagem_erro or "NOT_FOUND" in mensagem_erro)
+                        (
+                            "404" in mensagem_erro
+                            or "NOT_FOUND" in mensagem_erro
+                            or "429" in mensagem_erro
+                            or "RESOURCE_EXHAUSTED" in mensagem_erro
+                        )
                         and model_index < len(candidate_models) - 1
                     ):
                         print(
@@ -552,7 +570,7 @@ def generate_audio_for_avatar(text, avatar=None):
     try:
         client = genai.Client(
             api_key=api_key,
-            http_options=types.HttpOptions(timeout=10000),
+            http_options=types.HttpOptions(timeout=30000),
         )
 
         print(
@@ -603,4 +621,4 @@ def generate_audio_for_avatar(text, avatar=None):
         print("VOZ:", voice_name)
         traceback.print_exc()
         print("=" * 70 + "\n")
-        return None
+        return None\n
