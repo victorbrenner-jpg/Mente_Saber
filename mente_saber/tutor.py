@@ -31,6 +31,15 @@ AVATAR_VOICES = {
 }
 
 
+def _get_valid_model() -> str:
+    """Retorna um modelo Gemini válido e suportado."""
+    model = os.getenv("GEMINI_MODEL", "").strip()
+    # Se a variável estiver vazia ou contiver um nome legado/inválido, usa o padrão oficial
+    if not model or model in {"gemini-3.5-flash-lite", "gemini-3.5-flash"}:
+        return "gemini-2.5-flash"
+    return model
+
+
 def _build_contents(history, pergunta, max_messages=14, max_chars=2000):
     """Monta o histórico da conversa no formato do Gemini, terminando na pergunta atual."""
     contents = []
@@ -143,10 +152,7 @@ QUALIDADE E SEGURANÇA:
 
     try:
         client = genai.Client(api_key=api_key)
-        # Ajustado para modelo oficial e mantido fallback seguro
-        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
-        if not model or model == "gemini-3.5-flash-lite":
-            model = "gemini-2.5-flash"
+        model = _get_valid_model()
 
         response = client.models.generate_content(
             model=model,
@@ -176,7 +182,7 @@ QUALIDADE E SEGURANÇA:
             return (
                 "O limite de solicitações da inteligência artificial foi atingido temporariamente. Tente novamente mais tarde."
             ), "error"
-        if "404" in mensagem or "NOT_FOUND" in mensagem or "MODEL" in mensagem and "NOT" in mensagem:
+        if "404" in mensagem or "NOT_FOUND" in mensagem or ("MODEL" in mensagem and "NOT" in mensagem):
             return (
                 "O modelo Gemini configurado não foi encontrado ou não está disponível para sua conta. "
                 "Confira a variável GEMINI_MODEL no arquivo .env."
@@ -202,7 +208,7 @@ def generate_audio_for_avatar(text: str, avatar: str = None):
 
     try:
         client = genai.Client(api_key=api_key)
-        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+        model = _get_valid_model()
 
         response = client.models.generate_content(
             model=model,
