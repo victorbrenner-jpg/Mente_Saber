@@ -2839,7 +2839,8 @@ def show_chat(user):
 
 def show_landing():
     """
-    Exibe a página pública antes do login.
+    Exibe a página pública antes do login, usando os mesmos tutores
+    vetoriais animados do chat (Olívia, Fifi, Bolt e Mimi).
     """
 
     base_dir = Path(__file__).resolve().parent
@@ -2879,24 +2880,125 @@ def show_landing():
 
     html = landing_path.read_text(encoding="utf-8")
 
-    bridge = """
-    <script>
-    (function () {
-        function goTo(label) {
-            try {
-                var buttons = window.parent.document.querySelectorAll("button");
-                for (var i = 0; i < buttons.length; i++) {
-                    if ((buttons[i].textContent || "").trim() === label) {
-                        buttons[i].click();
-                        return;
-                    }
-                }
-            } catch (err) {}
+    tutor_svgs_json = json.dumps(
+        {key: tutor_svg(key) for key in PET_SVGS},
+        ensure_ascii=False,
+    )
 
-            try { window.parent.location.search = "?cadastro=1"; } catch (err) {}
+    landing_tutor_css = """
+    <style id="ms-landing-animated-tutors-css">
+        .ms-landing-tutor-badge {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            display: inline-grid;
+            place-items: center;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #eaf2ff);
+            border: 2px solid #ffffff;
+            box-shadow: 0 4px 12px rgba(28, 52, 110, 0.14);
+            margin: 0 auto 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .ms-landing-tutor-badge svg {
+            width: 42px;
+            height: 42px;
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .ms-landing-tutor-badge.ms-inline {
+            width: 34px;
+            height: 34px;
+            margin: 0 6px 0 0;
+            vertical-align: middle;
+        }
+        .ms-landing-tutor-badge.ms-inline svg {
+            width: 26px;
+            height: 26px;
+        }
+        .ms-landing-tutor-stage {
+            width: 128px;
+            height: 128px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            margin: auto;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #dbeafe);
+            border: 3px solid #93c5fd;
+            box-shadow: 0 10px 24px rgba(36, 71, 198, 0.14);
+            overflow: hidden;
+        }
+        .ms-landing-tutor-stage svg {
+            width: 102px;
+            height: 102px;
+            max-width: 100%;
+            max-height: 100%;
         }
 
-        document.addEventListener("click", function (event) {
+        /* Animações idênticas às do chat */
+        .ms-bf { animation: ms-bf-float 2.6s ease-in-out infinite; overflow: visible; }
+        .ms-bf-wings { transform-origin: 50px 50px; animation: ms-bf-flap .7s ease-in-out infinite alternate; }
+        @keyframes ms-bf-flap { from { transform: scaleX(1); } to { transform: scaleX(.3); } }
+        @keyframes ms-bf-float {
+            0%, 100% { transform: translateY(0) rotate(-4deg); }
+            50% { transform: translateY(-4px) rotate(4deg); }
+        }
+
+        .ms-pet { overflow: visible; animation: ms-bf-float 2.8s ease-in-out infinite; }
+        .ms-blink { animation: ms-blink 4.2s infinite; }
+        @keyframes ms-blink { 0%, 90%, 100% { transform: scaleY(1); } 94% { transform: scaleY(.08); } }
+
+        .ms-owl-wing-l { transform-origin: 26px 54px; animation: ms-owl-wl 1.8s ease-in-out infinite alternate; }
+        .ms-owl-wing-r { transform-origin: 74px 54px; animation: ms-owl-wr 1.8s ease-in-out infinite alternate; }
+        @keyframes ms-owl-wl { from { transform: rotate(0); } to { transform: rotate(-16deg); } }
+        @keyframes ms-owl-wr { from { transform: rotate(0); } to { transform: rotate(16deg); } }
+
+        .ms-dog-tail { transform-origin: 72px 80px; animation: ms-wag .35s ease-in-out infinite alternate; }
+        @keyframes ms-wag { from { transform: rotate(-18deg); } to { transform: rotate(22deg); } }
+        .ms-dog-ear-l { transform-origin: 32px 28px; animation: ms-ear-l 1.6s ease-in-out infinite alternate; }
+        .ms-dog-ear-r { transform-origin: 68px 28px; animation: ms-ear-r 1.6s ease-in-out infinite alternate; }
+        @keyframes ms-ear-l { from { transform: rotate(0); } to { transform: rotate(9deg); } }
+        @keyframes ms-ear-r { from { transform: rotate(0); } to { transform: rotate(-9deg); } }
+        .ms-dog-tongue { transform-origin: 50px 60px; animation: ms-pant .5s ease-in-out infinite alternate; }
+        @keyframes ms-pant { from { transform: scaleY(.6); } to { transform: scaleY(1.1); } }
+
+        .ms-cat-tail { transform-origin: 72px 84px; animation: ms-swish 1.8s ease-in-out infinite alternate; }
+        @keyframes ms-swish { from { transform: rotate(-10deg); } to { transform: rotate(16deg); } }
+        .ms-cat-ear-r { transform-origin: 62px 28px; animation: ms-twitch 5s infinite; }
+        @keyframes ms-twitch { 0%, 86%, 100% { transform: rotate(0); } 90% { transform: rotate(-10deg); } 94% { transform: rotate(0); } }
+    </style>
+    """
+
+    bridge = f"""
+    <script>
+    (function () {{
+        var TUTOR_SVGS = {tutor_svgs_json};
+        var EMOJI_TO_KEY = {{
+            "🦉": "coruja",
+            "🦋": "borboleta",
+            "🐶": "cachorro",
+            "🐕": "cachorro",
+            "🐱": "gato",
+            "🐈": "gato"
+        }};
+        var selectedTutorKey = "cachorro";
+        var syncing = false;
+
+        function goTo(label) {{
+            try {{
+                var buttons = window.parent.document.querySelectorAll("button");
+                for (var i = 0; i < buttons.length; i++) {{
+                    if ((buttons[i].textContent || "").trim() === label) {{
+                        buttons[i].click();
+                        return;
+                    }}
+                }}
+            }} catch (err) {{}}
+
+            try {{ window.parent.location.search = "?cadastro=1"; }} catch (err) {{}}
+        }}
+
+        document.addEventListener("click", function (event) {{
             var el = event.target.closest("[data-open-login], [data-open-signup]");
             if (!el) return;
 
@@ -2908,10 +3010,154 @@ def show_landing():
                     ? "landing-go-login"
                     : "landing-go-signup"
             );
-        }, true);
-    })();
+        }}, true);
+
+        function detectTutorKey(text) {{
+            var s = (text || "").toLowerCase();
+            if (s.indexOf("coruja") !== -1 || s.indexOf("olívia") !== -1 || s.indexOf("olivia") !== -1 || s.indexOf("owl") !== -1) return "coruja";
+            if (s.indexOf("borboleta") !== -1 || s.indexOf("fifi") !== -1 || s.indexOf("butterfly") !== -1) return "borboleta";
+            if (s.indexOf("cachorro") !== -1 || s.indexOf("bolt") !== -1 || s.indexOf("dog") !== -1) return "cachorro";
+            if (s.indexOf("gato") !== -1 || s.indexOf("mimi") !== -1 || s.indexOf("cat") !== -1) return "gato";
+            return null;
+        }}
+
+        function makeBadge(key, inline) {{
+            var span = document.createElement("span");
+            span.className = "ms-landing-tutor-badge" + (inline ? " ms-inline" : "");
+            span.setAttribute("data-ms-tutor-rendered", key);
+            span.innerHTML = TUTOR_SVGS[key] || "";
+            return span;
+        }}
+
+        function makeStage(key) {{
+            var div = document.createElement("div");
+            div.className = "ms-landing-tutor-stage";
+            div.setAttribute("data-ms-tutor-stage", key);
+            div.innerHTML = TUTOR_SVGS[key] || "";
+            return div;
+        }}
+
+        function replaceTutorEmojis(root) {{
+            var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+            var nodes = [];
+            var n;
+            while ((n = walker.nextNode())) {{
+                var parent = n.parentElement;
+                if (!parent) continue;
+                var tag = parent.tagName;
+                if (tag === "SCRIPT" || tag === "STYLE" || tag === "TEXTAREA" || tag === "INPUT") continue;
+                if (parent.closest("[data-ms-tutor-rendered], [data-ms-tutor-stage]")) continue;
+                if (/[🦉🦋🐶🐕🐱🐈]/.test(n.nodeValue || "")) {{
+                    nodes.push(n);
+                }}
+            }}
+
+            nodes.forEach(function (textNode) {{
+                var val = textNode.nodeValue || "";
+                var trimmed = val.trim();
+                if (EMOJI_TO_KEY[trimmed]) {{
+                    textNode.parentNode.replaceChild(makeBadge(EMOJI_TO_KEY[trimmed], false), textNode);
+                    return;
+                }}
+
+                var frag = document.createDocumentFragment();
+                var parts = val.split(/(🦉|🦋|🐶|🐕|🐱|🐈)/g);
+                parts.forEach(function (part) {{
+                    if (EMOJI_TO_KEY[part]) {{
+                        frag.appendChild(makeBadge(EMOJI_TO_KEY[part], true));
+                    }} else if (part) {{
+                        frag.appendChild(document.createTextNode(part));
+                    }}
+                }});
+                textNode.parentNode.replaceChild(frag, textNode);
+            }});
+        }}
+
+        function syncTutorPreview() {{
+            if (syncing) return;
+            syncing = true;
+            try {{
+                replaceTutorEmojis(document.body);
+
+                // Detecta qual tutor está ativo no card de destaque ("Bolt, seu companheiro", etc.)
+                var headings = document.querySelectorAll("h1, h2, h3, h4, strong, b, div, p");
+                for (var i = 0; i < headings.length; i++) {{
+                    var el = headings[i];
+                    if (el.children.length > 1) continue;
+                    var txt = (el.textContent || "").trim();
+                    if (/seu companheiro|sua companheira/i.test(txt)) {{
+                        var foundKey = detectTutorKey(txt) || selectedTutorKey;
+                        selectedTutorKey = foundKey;
+                        var card = el.parentElement;
+                        while (card && card.parentElement && card.children.length < 2) {{
+                            card = card.parentElement;
+                        }}
+                        if (card) {{
+                            var existingStage = card.querySelector("[data-ms-tutor-stage]");
+                            if (existingStage) {{
+                                if (existingStage.getAttribute("data-ms-tutor-stage") !== foundKey) {{
+                                    existingStage.setAttribute("data-ms-tutor-stage", foundKey);
+                                    existingStage.innerHTML = TUTOR_SVGS[foundKey] || "";
+                                }}
+                            }} else {{
+                                var media = card.querySelector("img, svg, canvas, [class*='avatar'], [class*='masc'], [class*='tutor'], [class*='preview'], [class*='illu']");
+                                if (media && !media.closest("button")) {{
+                                    var box = media.parentElement && media.parentElement !== card ? media.parentElement : media;
+                                    box.replaceWith(makeStage(foundKey));
+                                }}
+                            }}
+                        }}
+                        break;
+                    }}
+                }}
+
+                // Substitui também qualquer outra ilustração estática dos 4 tutores na página
+                var imgs = document.querySelectorAll("img");
+                for (var j = 0; j < imgs.length; j++) {{
+                    var img = imgs[j];
+                    if (img.closest("[data-ms-tutor-rendered], [data-ms-tutor-stage]")) continue;
+                    var hint = (img.getAttribute("alt") || "") + " " + (img.getAttribute("src") || "") + " " + (img.className || "");
+                    var imgKey = detectTutorKey(hint);
+                    if (imgKey && img.clientWidth <= 360) {{
+                        img.replaceWith(makeStage(imgKey));
+                    }}
+                }}
+            }} finally {{
+                syncing = false;
+            }}
+        }}
+
+        document.addEventListener("click", function (event) {{
+            var btn = event.target.closest("button, [role='button'], [data-tutor]");
+            if (!btn) return;
+            var key = detectTutorKey((btn.getAttribute("data-tutor") || "") + " " + (btn.textContent || ""));
+            if (key) {{
+                selectedTutorKey = key;
+                setTimeout(syncTutorPreview, 0);
+                setTimeout(syncTutorPreview, 60);
+            }}
+        }}, true);
+
+        if (document.readyState === "loading") {{
+            document.addEventListener("DOMContentLoaded", syncTutorPreview);
+        }} else {{
+            syncTutorPreview();
+        }}
+
+        var observer = new MutationObserver(function () {{
+            if (!syncing) syncTutorPreview();
+        }});
+        if (document.body) {{
+            observer.observe(document.body, {{ childList: true, subtree: true, characterData: true }});
+        }}
+    }})();
     </script>
     """
+
+    if "</head>" in html:
+        html = html.replace("</head>", landing_tutor_css + "</head>", 1)
+    else:
+        html = landing_tutor_css + html
 
     if "</body>" in html:
         html = html.replace("</body>", bridge + "</body>", 1)
