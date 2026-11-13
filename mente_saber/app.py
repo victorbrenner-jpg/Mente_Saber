@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import time
+import sqlite3
 import html as html_lib
 from datetime import date, timedelta
 from functools import lru_cache
@@ -41,7 +42,7 @@ from database import DB_PATH
 import tutor
 
 # =========================================================
-# CONFIGURAÇÃO INICIAL
+# CONFIGURAÇÃO INICIAL E DISCIPLINAS DO ENSINO REGULAR
 # =========================================================
 
 load_dotenv()
@@ -61,7 +62,186 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-SUBJECTS = list_subjects()
+REGULAR_EDUCATION_SUBJECTS = [
+    {
+        "slug": "portugues",
+        "name": "Português e Gramática",
+        "emoji": "📚",
+        "description": "Estude gramática, ortografia, pontuação, concordância, crase, interpretação de texto e redação.",
+    },
+    {
+        "slug": "matematica",
+        "name": "Matemática",
+        "emoji": "➗",
+        "description": "Aprenda conceitos, resolva problemas e veja os cálculos explicados passo a passo.",
+    },
+    {
+        "slug": "ingles",
+        "name": "Inglês",
+        "emoji": "🌍",
+        "description": "Pratique vocabulário, gramática, leitura e conversação.",
+    },
+    {
+        "slug": "ciencias",
+        "name": "Ciências",
+        "emoji": "🔬",
+        "description": "Descubra o corpo humano, seres vivos, meio ambiente, matéria, energia e fenômenos da natureza.",
+    },
+    {
+        "slug": "historia",
+        "name": "História",
+        "emoji": "🏛️",
+        "description": "Explore períodos históricos, acontecimentos e suas relações.",
+    },
+    {
+        "slug": "geografia",
+        "name": "Geografia",
+        "emoji": "🗺️",
+        "description": "Explore mapas, relevo, clima, biomas, população, geopolítica e atualidades do Brasil e do mundo.",
+    },
+    {
+        "slug": "biologia",
+        "name": "Biologia",
+        "emoji": "🧬",
+        "description": "Estude células, genética, ecologia, evolução, botânica, zoologia e fisiologia humana.",
+    },
+    {
+        "slug": "fisica",
+        "name": "Física",
+        "emoji": "⚛️",
+        "description": "Compreenda movimento, forças, energia, eletricidade, ondas, óptica e termodinâmica.",
+    },
+    {
+        "slug": "quimica",
+        "name": "Química",
+        "emoji": "🧪",
+        "description": "Aprenda sobre átomos, tabela periódica, ligações químicas, reações e soluções.",
+    },
+    {
+        "slug": "literatura",
+        "name": "Literatura",
+        "emoji": "📖",
+        "description": "Conheça escolas literárias, obras clássicas, gêneros textuais e figuras de linguagem.",
+    },
+    {
+        "slug": "redacao",
+        "name": "Redação",
+        "emoji": "✍️",
+        "description": "Pratique estrutura textual, dissertação-argumentativa, coesão, coerência e produção de textos.",
+    },
+    {
+        "slug": "espanhol",
+        "name": "Espanhol",
+        "emoji": "🇪🇸",
+        "description": "Pratique vocabulário, leitura, gramática e expressões cotidianas em língua espanhola.",
+    },
+    {
+        "slug": "artes",
+        "name": "Artes",
+        "emoji": "🎨",
+        "description": "Explore artes visuais, música, teatro, dança, história da arte e expressão criativa.",
+    },
+    {
+        "slug": "educacao_fisica",
+        "name": "Educação Física",
+        "emoji": "⚽",
+        "description": "Aprenda sobre esportes, saúde, corpo em movimento, jogos, regras e qualidade de vida.",
+    },
+    {
+        "slug": "filosofia",
+        "name": "Filosofia",
+        "emoji": "🤔",
+        "description": "Reflita sobre ética, lógica, conhecimento, cidadania e os grandes pensadores.",
+    },
+    {
+        "slug": "sociologia",
+        "name": "Sociologia",
+        "emoji": "👥",
+        "description": "Compreenda cultura, sociedade, cidadania, trabalho e transformações sociais.",
+    },
+    {
+        "slug": "ensino_religioso",
+        "name": "Ensino Religioso",
+        "emoji": "🕊️",
+        "description": "Conheça diferentes tradições, valores humanos, respeito cultural e diversidade.",
+    },
+    {
+        "slug": "programacao",
+        "name": "Programação e Tecnologia",
+        "emoji": "💻",
+        "description": "Aprenda lógica, Python, SQL, planilhas e conceitos de tecnologia.",
+    },
+]
+
+
+def _load_all_subjects():
+    """Garante todas as matérias do ensino regular no banco e na lista ativa."""
+    existing = list(list_subjects() or [])
+    existing_slugs = {str(s.get("slug", "")).strip() for s in existing}
+    existing_names = {str(s.get("name", "")).strip().casefold() for s in existing}
+
+    missing = [
+        item
+        for item in REGULAR_EDUCATION_SUBJECTS
+        if item["slug"] not in existing_slugs
+        and item["name"].strip().casefold() not in existing_names
+    ]
+
+    if missing:
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                cur = conn.cursor()
+                cur.execute("PRAGMA table_info(subjects)")
+                cols_info = cur.fetchall()
+                col_names = {row[1] for row in cols_info}
+
+                if {"slug", "name"}.issubset(col_names):
+                    for item in missing:
+                        insert_cols = ["slug", "name"]
+                        insert_vals = [item["slug"], item["name"]]
+
+                        if "emoji" in col_names:
+                            insert_cols.append("emoji")
+                            insert_vals.append(item["emoji"])
+                        if "description" in col_names:
+                            insert_cols.append("description")
+                            insert_vals.append(item["description"])
+                        if "prompt" in col_names:
+                            insert_cols.append("prompt")
+                            insert_vals.append(
+                                f"Ensine {item['name']} de forma clara, didática e adequada ao ensino regular."
+                            )
+                        if "system_prompt" in col_names:
+                            insert_cols.append("system_prompt")
+                            insert_vals.append(
+                                f"Ensine {item['name']} de forma clara, didática e adequada ao ensino regular."
+                            )
+
+                        placeholders = ", ".join("?" for _ in insert_cols)
+                        cols_sql = ", ".join(insert_cols)
+                        cur.execute(
+                            f"INSERT OR IGNORE INTO subjects ({cols_sql}) VALUES ({placeholders})",
+                            insert_vals,
+                        )
+                    conn.commit()
+        except Exception:
+            pass
+
+    refreshed = list(list_subjects() or [])
+    refreshed_slugs = {str(s.get("slug", "")).strip() for s in refreshed}
+    refreshed_names = {str(s.get("name", "")).strip().casefold() for s in refreshed}
+
+    for item in REGULAR_EDUCATION_SUBJECTS:
+        if (
+            item["slug"] not in refreshed_slugs
+            and item["name"].strip().casefold() not in refreshed_names
+        ):
+            refreshed.append(dict(item))
+
+    return refreshed
+
+
+SUBJECTS = _load_all_subjects()
 FREE_QUESTIONS = 3
 PRICE = 35.00
 
@@ -1857,7 +2037,7 @@ def show_right_panel(user):
 
     slugs = [subject["slug"] for subject in SUBJECTS]
     labels = {
-        subject["slug"]: f"{subject['emoji']} {subject['name']}"
+        subject["slug"]: f"{subject.get('emoji', '📘')} {subject['name']}"
         for subject in SUBJECTS
     }
 
@@ -2014,24 +2194,29 @@ def show_shop(user):
 
 def show_subjects(user):
     st.markdown("## 📖 Matérias")
-    st.caption("Escolha uma disciplina para começar uma nova conversa.")
+    st.caption(
+        f"Escolha entre as {len(SUBJECTS)} disciplinas do ensino regular e tecnologia "
+        "para começar uma nova conversa."
+    )
 
-    cols = st.columns(3)
+    for start in range(0, len(SUBJECTS), 3):
+        cols = st.columns(3)
 
-    for index, subject in enumerate(SUBJECTS):
-        with cols[index % 3]:
-            with st.container(border=True):
-                st.markdown(f"### {subject['emoji']} {subject['name']}")
-                st.caption(subject.get("description", ""))
+        for col, subject in zip(cols, SUBJECTS[start:start + 3]):
+            with col:
+                with st.container(border=True):
+                    emoji = subject.get("emoji", "📘")
+                    st.markdown(f"### {emoji} {subject['name']}")
+                    st.caption(subject.get("description", ""))
 
-                st.button(
-                    "Estudar",
-                    key=f"subject_card_{subject['slug']}",
-                    use_container_width=True,
-                    type="primary",
-                    on_click=_choose_subject,
-                    args=(user["id"], subject["slug"]),
-                )
+                    st.button(
+                        "Estudar",
+                        key=f"subject_card_{subject['slug']}",
+                        use_container_width=True,
+                        type="primary",
+                        on_click=_choose_subject,
+                        args=(user["id"], subject["slug"]),
+                    )
 
 
 def show_history(user):
