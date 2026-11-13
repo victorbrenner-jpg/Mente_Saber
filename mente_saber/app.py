@@ -1074,7 +1074,7 @@ def _claim_daily_reward(user_id, avatar_key):
 
     treat_name, treat_note = TUTOR_DAILY_TREATS.get(
         avatar_key,
-        ("🏅 Medalha de Dedicação", "Seu tutor ficou muito orgulhoso!"),
+        ("🏅 Medalha de Dedicação", "Seu tutor ficou muito orguloso!"),
     )
 
     data["claimed_today"] = True
@@ -2839,7 +2839,7 @@ def show_chat(user):
 
 def show_landing():
     """
-    Exibe a página pública antes do login, usando os mesmos tutores
+    Exibe a página pública antes do login, com os mesmos tutores
     vetoriais animados do chat (Olívia, Fifi, Bolt e Mimi).
     """
 
@@ -2916,24 +2916,6 @@ def show_landing():
             width: 26px;
             height: 26px;
         }
-        .ms-landing-tutor-stage {
-            width: 128px;
-            height: 128px;
-            border-radius: 50%;
-            display: grid;
-            place-items: center;
-            margin: auto;
-            background: radial-gradient(circle at 30% 30%, #ffffff, #dbeafe);
-            border: 3px solid #93c5fd;
-            box-shadow: 0 10px 24px rgba(36, 71, 198, 0.14);
-            overflow: hidden;
-        }
-        .ms-landing-tutor-stage svg {
-            width: 102px;
-            height: 102px;
-            max-width: 100%;
-            max-height: 100%;
-        }
 
         /* Animações idênticas às do chat */
         .ms-bf { animation: ms-bf-float 2.6s ease-in-out infinite; overflow: visible; }
@@ -2981,8 +2963,6 @@ def show_landing():
             "🐱": "gato",
             "🐈": "gato"
         }};
-        var selectedTutorKey = "cachorro";
-        var syncing = false;
 
         function goTo(label) {{
             try {{
@@ -3021,6 +3001,11 @@ def show_landing():
             return null;
         }}
 
+        function svgDataUri(key) {{
+            var raw = TUTOR_SVGS[key] || "";
+            return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(raw);
+        }}
+
         function makeBadge(key, inline) {{
             var span = document.createElement("span");
             span.className = "ms-landing-tutor-badge" + (inline ? " ms-inline" : "");
@@ -3029,127 +3014,71 @@ def show_landing():
             return span;
         }}
 
-        function makeStage(key) {{
-            var div = document.createElement("div");
-            div.className = "ms-landing-tutor-stage";
-            div.setAttribute("data-ms-tutor-stage", key);
-            div.innerHTML = TUTOR_SVGS[key] || "";
-            return div;
-        }}
-
-        function replaceTutorEmojis(root) {{
-            var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-            var nodes = [];
-            var n;
-            while ((n = walker.nextNode())) {{
-                var parent = n.parentElement;
-                if (!parent) continue;
-                var tag = parent.tagName;
-                if (tag === "SCRIPT" || tag === "STYLE" || tag === "TEXTAREA" || tag === "INPUT") continue;
-                if (parent.closest("[data-ms-tutor-rendered], [data-ms-tutor-stage]")) continue;
-                if (/[🦉🦋🐶🐕🐱🐈]/.test(n.nodeValue || "")) {{
-                    nodes.push(n);
-                }}
-            }}
-
-            nodes.forEach(function (textNode) {{
-                var val = textNode.nodeValue || "";
-                var trimmed = val.trim();
-                if (EMOJI_TO_KEY[trimmed]) {{
-                    textNode.parentNode.replaceChild(makeBadge(EMOJI_TO_KEY[trimmed], false), textNode);
-                    return;
-                }}
-
-                var frag = document.createDocumentFragment();
-                var parts = val.split(/(🦉|🦋|🐶|🐕|🐱|🐈)/g);
-                parts.forEach(function (part) {{
-                    if (EMOJI_TO_KEY[part]) {{
-                        frag.appendChild(makeBadge(EMOJI_TO_KEY[part], true));
-                    }} else if (part) {{
-                        frag.appendChild(document.createTextNode(part));
-                    }}
-                }});
-                textNode.parentNode.replaceChild(frag, textNode);
-            }});
-        }}
-
-        function syncTutorPreview() {{
-            if (syncing) return;
-            syncing = true;
+        function enhanceLandingTutors() {{
             try {{
-                replaceTutorEmojis(document.body);
+                if (!document.body) return;
 
-                // Detecta qual tutor está ativo no card de destaque ("Bolt, seu companheiro", etc.)
-                var headings = document.querySelectorAll("h1, h2, h3, h4, strong, b, div, p");
-                for (var i = 0; i < headings.length; i++) {{
-                    var el = headings[i];
-                    if (el.children.length > 1) continue;
-                    var txt = (el.textContent || "").trim();
-                    if (/seu companheiro|sua companheira/i.test(txt)) {{
-                        var foundKey = detectTutorKey(txt) || selectedTutorKey;
-                        selectedTutorKey = foundKey;
-                        var card = el.parentElement;
-                        while (card && card.parentElement && card.children.length < 2) {{
-                            card = card.parentElement;
-                        }}
-                        if (card) {{
-                            var existingStage = card.querySelector("[data-ms-tutor-stage]");
-                            if (existingStage) {{
-                                if (existingStage.getAttribute("data-ms-tutor-stage") !== foundKey) {{
-                                    existingStage.setAttribute("data-ms-tutor-stage", foundKey);
-                                    existingStage.innerHTML = TUTOR_SVGS[foundKey] || "";
-                                }}
-                            }} else {{
-                                var media = card.querySelector("img, svg, canvas, [class*='avatar'], [class*='masc'], [class*='tutor'], [class*='preview'], [class*='illu']");
-                                if (media && !media.closest("button")) {{
-                                    var box = media.parentElement && media.parentElement !== card ? media.parentElement : media;
-                                    box.replaceWith(makeStage(foundKey));
-                                }}
-                            }}
-                        }}
-                        break;
+                var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+                var nodes = [];
+                var n;
+                while ((n = walker.nextNode())) {{
+                    var parent = n.parentElement;
+                    if (!parent) continue;
+                    var tag = parent.tagName;
+                    if (tag === "SCRIPT" || tag === "STYLE" || tag === "TEXTAREA" || tag === "INPUT") continue;
+                    if (parent.closest("[data-ms-tutor-rendered]")) continue;
+                    if (/[🦉🦋🐶🐕🐱🐈]/.test(n.nodeValue || "")) {{
+                        nodes.push(n);
                     }}
                 }}
 
-                // Substitui também qualquer outra ilustração estática dos 4 tutores na página
+                nodes.forEach(function (textNode) {{
+                    if (!textNode.parentNode) return;
+                    var val = textNode.nodeValue || "";
+                    var trimmed = val.trim();
+                    if (EMOJI_TO_KEY[trimmed]) {{
+                        textNode.parentNode.replaceChild(makeBadge(EMOJI_TO_KEY[trimmed], false), textNode);
+                        return;
+                    }}
+
+                    var frag = document.createDocumentFragment();
+                    var parts = val.split(/(🦉|🦋|🐶|🐕|🐱|🐈)/g);
+                    parts.forEach(function (part) {{
+                        if (EMOJI_TO_KEY[part]) {{
+                            frag.appendChild(makeBadge(EMOJI_TO_KEY[part], true));
+                        }} else if (part) {{
+                            frag.appendChild(document.createTextNode(part));
+                        }}
+                    }});
+                    textNode.parentNode.replaceChild(frag, textNode);
+                }});
+
                 var imgs = document.querySelectorAll("img");
                 for (var j = 0; j < imgs.length; j++) {{
                     var img = imgs[j];
-                    if (img.closest("[data-ms-tutor-rendered], [data-ms-tutor-stage]")) continue;
-                    var hint = (img.getAttribute("alt") || "") + " " + (img.getAttribute("src") || "") + " " + (img.className || "");
+                    var hint = (img.getAttribute("alt") || "") + " " + (img.getAttribute("src") || "") + " " + (img.id || "") + " " + (img.className || "");
                     var imgKey = detectTutorKey(hint);
-                    if (imgKey && img.clientWidth <= 360) {{
-                        img.replaceWith(makeStage(imgKey));
+                    if (imgKey) {{
+                        img.src = svgDataUri(imgKey);
+                        img.style.borderRadius = "50%";
+                        img.style.background = "radial-gradient(circle at 30% 30%, #ffffff, #dbeafe)";
+                        img.style.padding = "6px";
                     }}
                 }}
-            }} finally {{
-                syncing = false;
-            }}
+            }} catch (e) {{}}
+        }}
+
+        if (document.readyState === "loading") {{
+            document.addEventListener("DOMContentLoaded", enhanceLandingTutors);
+        }} else {{
+            enhanceLandingTutors();
         }}
 
         document.addEventListener("click", function (event) {{
-            var btn = event.target.closest("button, [role='button'], [data-tutor]");
-            if (!btn) return;
-            var key = detectTutorKey((btn.getAttribute("data-tutor") || "") + " " + (btn.textContent || ""));
-            if (key) {{
-                selectedTutorKey = key;
-                setTimeout(syncTutorPreview, 0);
-                setTimeout(syncTutorPreview, 60);
+            if (event.target.closest("button, [role='button'], [data-tutor]")) {{
+                setTimeout(enhanceLandingTutors, 30);
             }}
         }}, true);
-
-        if (document.readyState === "loading") {{
-            document.addEventListener("DOMContentLoaded", syncTutorPreview);
-        }} else {{
-            syncTutorPreview();
-        }}
-
-        var observer = new MutationObserver(function () {{
-            if (!syncing) syncTutorPreview();
-        }});
-        if (document.body) {{
-            observer.observe(document.body, {{ childList: true, subtree: true, characterData: true }});
-        }}
     }})();
     </script>
     """
