@@ -519,6 +519,8 @@ def logout():
         "avatar_navigation",
         "interaction_mode",
         "voice_enabled",
+        "autoplay_latest_conv",
+        "autoplay_latest_text",
         "page",
     )
 
@@ -770,7 +772,7 @@ VOICE_PLAYBACK_RATE = {
 }
 
 
-@st.cache_data(show_spinner=False, max_entries=60, ttl=3600)
+@st.cache_data(show_spinner=False, max_entries=80, ttl=3600)
 def _cached_tutor_audio(text, avatar_key):
     """Gera (e guarda em cache) o áudio do tutor. Falhas levantam erro com diagnóstico real."""
     return tutor.generate_audio_for_avatar(text, avatar_key, raise_on_error=True)
@@ -916,19 +918,24 @@ def _render_voice_button(
     key,
     avatar_key="coruja",
     language="pt-BR",
+    auto_prepare=False,
+    autoplay=False,
 ):
     """Lê a resposta com a voz exclusiva de cada tutor (Gemini TTS) e anima o mascote.
 
-    O áudio só é gerado quando o aluno clica em "Ouvir resposta" e fica em cache.
-    Não utiliza a voz padrão do navegador como substituição silenciosa: caso o
-    Gemini TTS falhe, exibe o diagnóstico real do erro e um botão para tentar de novo.
+    - Na resposta mais recente (`auto_prepare=True`), o player já aparece pronto
+      (e toca automaticamente quando `autoplay=True`), sem obrigar a criança a clicar.
+    - Nas respostas antigas do histórico (`auto_prepare=False`), mostra um botão
+      discreto para ouvir novamente sob demanda.
     """
     safe_key = re.sub(r"[^a-zA-Z0-9_-]", "_", str(key))
     ready_key = f"voice_ready_{safe_key}"
     tutor_label = AVATARS.get(avatar_key, AVATARS["coruja"])["label"]
 
-    if not st.session_state.get(ready_key):
-        if st.button("🔊 Ouvir resposta", key=f"voice_btn_{safe_key}"):
+    is_ready = auto_prepare or bool(st.session_state.get(ready_key))
+
+    if not is_ready:
+        if st.button("🔈 Ouvir novamente", key=f"voice_btn_{safe_key}"):
             st.session_state[ready_key] = True
             st.session_state["voice_autoplay_key"] = safe_key
             st.rerun()
@@ -941,6 +948,7 @@ def _render_voice_button(
     except Exception as err:
         st.error(f"Não foi possível gerar a voz de {tutor_label}: {err}")
         if st.button("🔄 Tentar novamente", key=f"voice_retry_{safe_key}"):
+            st.session_state[ready_key] = True
             st.session_state["voice_autoplay_key"] = safe_key
             st.rerun()
         return
@@ -955,9 +963,11 @@ def _render_voice_button(
     """
     svg = svg.replace("</svg>", mouth + "</svg>")
 
-    should_autoplay = st.session_state.get("voice_autoplay_key") == safe_key
-    if should_autoplay:
+    manual_autoplay = st.session_state.get("voice_autoplay_key") == safe_key
+    if manual_autoplay:
         st.session_state.pop("voice_autoplay_key", None)
+
+    should_autoplay = bool(autoplay or manual_autoplay)
 
     html = (
         _VOICE_HTML
@@ -970,7 +980,7 @@ def _render_voice_button(
 
     _html_component(
         html,
-        key=f"voice_{safe_key}_{avatar_key}",
+        key=f"voice_{safe_key}_{avatar_key}_{'play' if should_autoplay else 'idle'}",
         height=88,
         scrolling=False,
     )
@@ -1356,12 +1366,12 @@ def show_right_panel(user):
             args=(user["id"],),
         )
 
-        st.session_state.setdefault("voice_enabled", False)
+        st.session_state.setdefault("voice_enabled", True)
 
         st.checkbox(
-            "🔊 Controles de voz",
+            "🔊 Voz automática do tutor",
             key="voice_enabled",
-            help="Mostra o botão para ouvir as respostas com a voz de cada tutor.",
+            help="Quando ativado, o tutor lê cada resposta nova automaticamente com a própria voz.",
         )
 
     tip = DAILY_TIPS[date.today().toordinal() % len(DAILY_TIPS)]
@@ -1731,6 +1741,8 @@ def show_chat(user):
     if st.session_state.get("interaction_mode") not in mode_labels:
         st.session_state["interaction_mode"] = "estudar"
 
+    st.session_state.setdefault("voice_enabled", True)
+
     subscription = get_subscription(user["id"])
     is_subscriber = bool(subscription and subscription["status"] == "active")
 
@@ -1774,6 +1786,18 @@ def show_chat(user):
             "brincar": "Vamos brincar! Peça um quiz, uma charada, uma adivinhação ou um jogo de palavras.",
         }[interaction_mode]
 
+        voice_enabled = bool(st.session_state.get("voice_enabled", True))
+        last_assistant_idx = max(
+            (idx for idx, msg in enumerate(history) if msg["role"] == "assistant"),
+            default=-1,
+        )
+
+        should_autoplay_latest = (
+            st.session_state.get("autoplay_latest_conv") == active_id
+        )
+        if should_autoplay_latest:
+            st.session_state.pop("autoplay_latest_conv", None)
+
         box = _chat_box()
 
         with box:
@@ -1781,8 +1805,9 @@ def show_chat(user):
                 with st.chat_message("assistant", avatar=tutor_avatar):
                     st.markdown(welcome)
 
-            for item in history:
+            for idx, item in enumerate(history):
                 is_assistant = item["role"] == "assistant"
+                is_latest_reply = is_assistant and (idx == last_assistant_idx)
 
                 with st.chat_message(
                     item["role"],
@@ -1790,13 +1815,15 @@ def show_chat(user):
                 ):
                     st.markdown(item["content"])
 
-                    if is_assistant and st.session_state.get("voice_enabled", False):
+                    if is_assistant and voice_enabled:
                         _render_voice_button(
                             item["content"],
                             f"history_{active_id}_"
                             f"{item.get('id', item.get('created_at', 'message'))}",
                             avatar_key=avatar_key,
                             language="en-US" if is_english_subject(subject) else "pt-BR",
+                            auto_prepare=is_latest_reply,
+                            autoplay=is_latest_reply and should_autoplay_latest,
                         )
 
         if not is_subscriber and remaining <= 0:
@@ -1896,13 +1923,27 @@ def show_chat(user):
                         "para habilitar respostas reais de IA."
                     )
 
-        save_message(
-            user["id"],
-            subject_slug,
-            "assistant",
-            answer,
-            conversation_id=active_id,
-        )
+                save_message(
+                    user["id"],
+                    subject_slug,
+                    "assistant",
+                    answer,
+                    conversation_id=active_id,
+                )
+
+                # Pré-gera o áudio imediatamente após o texto para que o tutor
+                # comece a falar sozinho logo em seguida, sem a criança precisar clicar.
+                if voice_enabled and source_mode == "ai":
+                    voice_prep = st.empty()
+                    voice_prep.caption(f"🎙️ {html_lib.escape(str(tutor_name))} preparando a voz...")
+                    try:
+                        _cached_tutor_audio(answer, avatar_key)
+                        st.session_state["autoplay_latest_conv"] = active_id
+                    except Exception:
+                        # O player da última mensagem exibirá o diagnóstico caso falhe.
+                        pass
+                    finally:
+                        voice_prep.empty()
 
         st.rerun()
 
