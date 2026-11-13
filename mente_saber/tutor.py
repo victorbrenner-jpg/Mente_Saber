@@ -87,7 +87,7 @@ AVATAR_AUDIO_PROMPTS = {
     "gato": _ESTILO_MIMI, "mimi": _ESTILO_MIMI,
 }
 
-# Modelos de síntese de voz. Modelos apenas de texto (ex.: gemini-2.5-flash) NÃO geram áudio.
+# Modelos de síntese de voz. Modelos apenas de texto (ex.: gemini-2.5-flash) NÃO gera áudio.
 DEFAULT_TTS_MODEL = "gemini-2.5-flash-preview-tts"
 FALLBACK_TTS_MODELS = (
     "gemini-2.5-flash-preview-tts",
@@ -911,9 +911,13 @@ def generate_audio_for_avatar(text, avatar=None, raise_on_error: bool = False):
     last_model_tried = candidate_tts_models[0]
 
     try:
+        # speechConfig para Gemini TTS exige api_version="v1beta"
         client = genai.Client(
             api_key=api_key,
-            http_options=types.HttpOptions(timeout=60000),
+            http_options=types.HttpOptions(
+                api_version="v1beta",
+                timeout=60000,
+            ),
         )
 
         for index, modelo_audio in enumerate(candidate_tts_models):
@@ -963,7 +967,7 @@ def generate_audio_for_avatar(text, avatar=None, raise_on_error: bool = False):
                 last_diagnostic = _format_tts_error(model_err, modelo_audio, voice_name)
                 upper_err = str(model_err).upper()
 
-                # Se for erro de chave/permissão ou cota, não adianta tentar outro modelo.
+                # Se for erro de chave/permissão, cota ou argumento inválido, não repete em outro modelo.
                 if (
                     "401" in upper_err
                     or "403" in upper_err
@@ -971,6 +975,7 @@ def generate_audio_for_avatar(text, avatar=None, raise_on_error: bool = False):
                     or "PERMISSION_DENIED" in upper_err
                     or "429" in upper_err
                     or "RESOURCE_EXHAUSTED" in upper_err
+                    or "INVALID_ARGUMENT" in upper_err
                 ):
                     break
 
