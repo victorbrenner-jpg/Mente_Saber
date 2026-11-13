@@ -1,6 +1,9 @@
+import io
 import os
+import re
 import time
 import traceback
+import wave
 
 from google import genai
 from google.genai import types
@@ -45,53 +48,52 @@ AVATAR_PERSONAS = {
     ),
 }
 
-# Mapeamento completo de vozes aceitando tanto o nome do personagem quanto o animal
+# Uma voz diferente para cada tutor (Gemini TTS). Aceita nome do personagem ou do animal.
+# Outras opções: Zephyr, Charon, Orus, Callirrhoe, Autonoe, Enceladus, Iapetus,
+# Umbriel, Algieba, Despina, Erinome, Algenib, Rasalgethi, Laomedeia, Achernar,
+# Alnilam, Schedar, Gacrux, Pulcherrima, Achird, Zubenelgenubi, Vindemiatrix,
+# Sadachbia, Sadaltager, Sulafat
+_VOZ_OLIVIA = "Sulafat"    # calorosa e acolhedora
+_VOZ_FIFI = "Leda"         # jovem e delicada
+_VOZ_BOLT = "Fenrir"       # animado e cheio de energia
+_VOZ_MIMI = "Aoede"        # leve e tranquila
+
 AVATAR_VOICES = {
-    "coruja": "Aoede",      # Olívia: Feminina, acolhedora, suave e didática
-    "olivia": "Aoede",
-    "borboleta": "Aoede",   # Fifi: Feminina, alegre, infantil e expressiva
-    "fifi": "Aoede",
-    "cachorro": "Puck",     # Bolt: Masculino, divertido, energético e jovem
-    "bolt": "Puck",
-    "gato": "Kore",         # Mimi: Feminina, doce, delicada e carinhosa
-    "mimi": "Kore",
+    "coruja": _VOZ_OLIVIA, "olivia": _VOZ_OLIVIA,
+    "borboleta": _VOZ_FIFI, "fifi": _VOZ_FIFI,
+    "cachorro": _VOZ_BOLT, "bolt": _VOZ_BOLT,
+    "gato": _VOZ_MIMI, "mimi": _VOZ_MIMI,
 }
 
-# Instruções de prosódia enviadas ao sintetizador de áudio do Gemini
+# Direção de interpretação: o Gemini TTS obedece instruções escritas antes do texto.
+_ESTILO_OLIVIA = (
+    "Fale como a coruja Olívia, uma professora sábia, carinhosa e paciente, "
+    "com voz calorosa e ritmo calmo, conversando com uma criança"
+)
+_ESTILO_FIFI = (
+    "Fale como a borboleta Fifi, com voz doce, suave e cheia de encantamento, "
+    "num tom bem alegre e encorajador, conversando com uma criança"
+)
+_ESTILO_BOLT = (
+    "Fale como o cachorro Bolt, super animado, empolgado e brincalhão, "
+    "com muita energia e entusiasmo, conversando com uma criança"
+)
+_ESTILO_MIMI = (
+    "Fale como a gata Mimi, esperta, meiga e levemente travessa, "
+    "com voz suave e simpática, conversando com uma criança"
+)
+
 AVATAR_AUDIO_PROMPTS = {
-    "coruja": (
-        "Fale como Olívia: voz feminina, acolhedora, suave e didática, "
-        "com ritmo pausado, articulação clara e tom encorajador para crianças."
-    ),
-    "olivia": (
-        "Fale como Olívia: voz feminina, acolhedora, suave e didática, "
-        "com ritmo pausado, articulação clara e tom encorajador para crianças."
-    ),
-    "borboleta": (
-        "Fale como Fifi: voz feminina, alegre, infantil, leve, entusiasmada "
-        "e muito expressiva!"
-    ),
-    "fifi": (
-        "Fale como Fifi: voz feminina, alegre, infantil, leve, entusiasmada "
-        "e muito expressiva!"
-    ),
-    "cachorro": (
-        "Fale como Bolt: voz masculina jovem, divertida, leal, "
-        "energética e bastante amigável!"
-    ),
-    "bolt": (
-        "Fale como Bolt: voz masculina jovem, divertida, leal, "
-        "energética e bastante amigável!"
-    ),
-    "gato": (
-        "Fale como Mimi: voz feminina, doce, delicada, tranquila e carinhosa, "
-        "com ritmo sereno e tom acolhedor."
-    ),
-    "mimi": (
-        "Fale como Mimi: voz feminina, doce, delicada, tranquila e carinhosa, "
-        "com ritmo sereno e tom acolhedor."
-    ),
+    "coruja": _ESTILO_OLIVIA, "olivia": _ESTILO_OLIVIA,
+    "borboleta": _ESTILO_FIFI, "fifi": _ESTILO_FIFI,
+    "cachorro": _ESTILO_BOLT, "bolt": _ESTILO_BOLT,
+    "gato": _ESTILO_MIMI, "mimi": _ESTILO_MIMI,
 }
+
+# Modelo de síntese de voz. O modelo de texto (ex.: gemini-2.5-flash) NÃO gera esse áudio.
+DEFAULT_TTS_MODEL = "gemini-2.5-flash-preview-tts"
+TTS_SAMPLE_RATE = 24000  # o Gemini TTS devolve PCM 16-bit, mono, 24 kHz
+TTS_MAX_CHARS = 1200
 
 
 def _normalize_avatar_key(avatar_input: str) -> str:
@@ -607,12 +609,42 @@ QUALIDADE E SEGURANÇA:
 # GERAÇÃO DE ÁUDIO PARA OS AVATARES
 # ============================================================
 
+def _clean_text_for_speech(text, max_chars=TTS_MAX_CHARS):
+    """Remove markdown, links, blocos de código e emojis para a leitura soar natural."""
+    t = str(text or "")
+    t = re.sub(r"```[\s\S]*?```", " ", t)
+    t = re.sub(r"`([^`]+)`", r"\1", t)
+    t = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", t)
+    t = re.sub(r"https?://\S+", " ", t)
+    t = re.sub(r"^\s{0,3}#{1,6}\s*", "", t, flags=re.MULTILINE)
+    t = re.sub(r"[*_~>#]", "", t)
+    t = re.sub("[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0000FE0F\U0000200D]", "", t)
+    t = re.sub(r"\s+", " ", t).strip()
+
+    if len(t) > max_chars:
+        corte = t[:max_chars]
+        fim = max(corte.rfind(". "), corte.rfind("! "), corte.rfind("? "))
+        t = corte[: fim + 1] if fim > max_chars * 0.5 else corte
+    return t
+
+
+def _pcm_to_wav(pcm, sample_rate=TTS_SAMPLE_RATE):
+    """Empacota PCM bruto (16-bit, mono) em WAV para o navegador conseguir tocar."""
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(pcm)
+    return buffer.getvalue()
+
+
 def generate_audio_for_avatar(text, avatar=None):
     """
-    Converte o texto em áudio usando o modelo Gemini TTS.
+    Converte o texto em áudio (WAV) com a voz e o estilo do tutor, usando Gemini TTS.
     Retorna os bytes do áudio ou None se a geração falhar.
     """
-    texto = str(text or "").strip()
+    texto = _clean_text_for_speech(text)
     if not texto:
         return None
 
@@ -621,34 +653,30 @@ def generate_audio_for_avatar(text, avatar=None):
         print("Áudio não gerado: GEMINI_API_KEY não está configurada.")
         return None
 
-    # Normalização robusta da chave do avatar
     avatar_key = _normalize_avatar_key(avatar)
-    
-    # Seleção estrita da voz (garante 'Puck' masculino para Bolt e vozes dedicadas para as demais)
-    voice_name = AVATAR_VOICES.get(avatar_key, "Puck" if avatar_key == "bolt" else "Aoede")
-    
-    system_audio_prompt = AVATAR_AUDIO_PROMPTS.get(
+    voice_name = AVATAR_VOICES.get(avatar_key, _VOZ_OLIVIA)
+    estilo = AVATAR_AUDIO_PROMPTS.get(
         avatar_key,
-        "Fale de forma clara, acolhedora e natural para crianças."
+        "Fale de forma animada, alegre e carinhosa, conversando com uma criança",
     )
-    modelo_audio = _get_setting("GEMINI_TTS_MODEL", "gemini-2.5-flash")
+    modelo_audio = _get_setting("GEMINI_TTS_MODEL", DEFAULT_TTS_MODEL) or DEFAULT_TTS_MODEL
 
     print(
         f"Mente Saber [ÁUDIO]: Avatar recebido='{avatar}' | "
-        f"Chave normalizada='{avatar_key}' | Voz selecionada='{voice_name}' | Modelo='{modelo_audio}'"
+        f"Chave normalizada='{avatar_key}' | Voz='{voice_name}' | Modelo='{modelo_audio}'"
     )
 
     try:
         client = genai.Client(
             api_key=api_key,
-            http_options=types.HttpOptions(timeout=30000),
+            http_options=types.HttpOptions(timeout=60000),
         )
 
+        # Modelos de TTS não aceitam system_instruction: o estilo vai antes do texto.
         response = client.models.generate_content(
             model=modelo_audio,
-            contents=texto,
+            contents=f"{estilo}: {texto}",
             config=types.GenerateContentConfig(
-                system_instruction=system_audio_prompt,
                 response_modalities=["AUDIO"],
                 speech_config=types.SpeechConfig(
                     voice_config=types.VoiceConfig(
@@ -660,7 +688,6 @@ def generate_audio_for_avatar(text, avatar=None):
             ),
         )
 
-        # O SDK retorna o áudio em inline_data.data
         for candidate in (getattr(response, "candidates", None) or []):
             content = getattr(candidate, "content", None)
             for part in (getattr(content, "parts", None) or []):
@@ -668,10 +695,9 @@ def generate_audio_for_avatar(text, avatar=None):
                 audio_data = getattr(inline_data, "data", None)
 
                 if audio_data:
-                    if isinstance(audio_data, bytes):
-                        return audio_data
-                    if isinstance(audio_data, bytearray):
-                        return bytes(audio_data)
+                    data = bytes(audio_data)
+                    # Se já vier como WAV (RIFF), usa direto; senão é PCM bruto.
+                    return data if data[:4] == b"RIFF" else _pcm_to_wav(data)
 
         print("A API Gemini não retornou conteúdo de áudio. Verifique o modelo TTS e a chave.")
         return None
