@@ -259,12 +259,217 @@ PET_SVGS = {
 }
 
 
-def avatar_html(avatar_key, css_class="ms-avatar"):
-    """Avatar animado (SVG). Usa emoji se o avatar não tiver desenho."""
-    svg = PET_SVGS.get(avatar_key)
+# =========================================================
+# CATÁLOGO DE ACESSÓRIOS E SKINS EM SVG PARA OS TUTORES
+# =========================================================
 
-    if svg:
-        return f"<span class='{css_class} ms-avatar-emoji'>{svg}</span>"
+TUTOR_ACCESSORIES = [
+    {
+        "id": "none",
+        "name": "Visual Original",
+        "emoji": "✨",
+        "stars": 0,
+        "vip_free": False,
+        "desc": "O visual clássico e querido do seu tutor.",
+    },
+    {
+        "id": "oculos_nerd",
+        "name": "Óculos de Gênio",
+        "emoji": "🤓",
+        "stars": 10,
+        "vip_free": False,
+        "desc": "Lentes brilhantes para resolver qualquer desafio!",
+    },
+    {
+        "id": "coroa_real",
+        "name": "Coroa Dourada",
+        "emoji": "👑",
+        "stars": 20,
+        "vip_free": False,
+        "desc": "Uma coroa brilhante com joias para quem estuda todo dia.",
+    },
+    {
+        "id": "chapeu_mago",
+        "name": "Chapéu de Mago",
+        "emoji": "🧙",
+        "stars": 30,
+        "vip_free": False,
+        "desc": "Chapéu estrelado cheio de magia do conhecimento.",
+    },
+    {
+        "id": "fone_gamer",
+        "name": "Fone Gamer Neon",
+        "emoji": "🎧",
+        "stars": 35,
+        "vip_free": False,
+        "desc": "Estilo super moderno para ouvir explicações e jogar.",
+    },
+    {
+        "id": "super_heroi",
+        "name": "Traje Super-Herói",
+        "emoji": "🦸",
+        "stars": 45,
+        "vip_free": False,
+        "desc": "Máscara heróica e estrela no peito para salvar o dia!",
+    },
+    {
+        "id": "astronauta",
+        "name": "Capacete Espacial",
+        "emoji": "🚀",
+        "stars": 60,
+        "vip_free": True,
+        "desc": "Visor espacial de astronauta (grátis para assinantes!).",
+    },
+]
+
+# Pontos de encaixe proporcionais para cada mascote no viewBox 100x100
+_AVATAR_ANCHORS = {
+    "coruja": {"head_y": 27, "eye_y": 44, "eye_dx": 13, "eye_r": 12.5, "head_r": 27, "scale": 1.0, "chest_y": 76},
+    "borboleta": {"head_y": 30, "eye_y": 36, "eye_dx": 3.2, "eye_r": 3.4, "head_r": 9, "scale": 0.54, "chest_y": 58},
+    "cachorro": {"head_y": 20, "eye_y": 42, "eye_dx": 11, "eye_r": 7.5, "head_r": 24, "scale": 0.96, "chest_y": 80},
+    "gato": {"head_y": 24, "eye_y": 46, "eye_dx": 10, "eye_r": 7.5, "head_r": 22, "scale": 0.92, "chest_y": 80},
+}
+
+
+def _accessory_svg_layer(avatar_key, accessory_id):
+    """Gera a camada SVG do acessório/skin encaixada nas coordenadas exatas do tutor."""
+    if not accessory_id or accessory_id == "none":
+        return ""
+
+    a = _AVATAR_ANCHORS.get(avatar_key, _AVATAR_ANCHORS["cachorro"])
+    hy = a["head_y"]
+    ey = a["eye_y"]
+    dx = a["eye_dx"]
+    er = a["eye_r"]
+    hr = a["head_r"]
+    sc = a["scale"]
+    cy = a["chest_y"]
+
+    if accessory_id == "oculos_nerd":
+        lx = 50 - dx
+        rx = 50 + dx
+        bridge_l = lx + er
+        bridge_r = rx - er
+        return f"""
+        <g class="ms-acc-layer">
+            <circle cx="{lx}" cy="{ey}" r="{er}" fill="rgba(224,242,254,0.28)" stroke="#1e293b" stroke-width="{2.2 * sc:.2f}"/>
+            <circle cx="{rx}" cy="{ey}" r="{er}" fill="rgba(224,242,254,0.28)" stroke="#1e293b" stroke-width="{2.2 * sc:.2f}"/>
+            <path d="M{bridge_l} {ey} Q50 {ey - 2 * sc:.1f} {bridge_r} {ey}" fill="none" stroke="#1e293b" stroke-width="{2.2 * sc:.2f}"/>
+            <line x1="{lx - er}" y1="{ey}" x2="{lx - er - 4 * sc:.1f}" y2="{ey - 2 * sc:.1f}" stroke="#1e293b" stroke-width="{2 * sc:.2f}" stroke-linecap="round"/>
+            <line x1="{rx + er}" y1="{ey}" x2="{rx + er + 4 * sc:.1f}" y2="{ey - 2 * sc:.1f}" stroke="#1e293b" stroke-width="{2 * sc:.2f}" stroke-linecap="round"/>
+            <line x1="{lx - er * 0.45:.1f}" y1="{ey - er * 0.35:.1f}" x2="{lx - er * 0.1:.1f}" y2="{ey - er * 0.65:.1f}" stroke="#ffffff" stroke-width="{1.5 * sc:.2f}" stroke-linecap="round" opacity="0.85"/>
+            <line x1="{rx - er * 0.45:.1f}" y1="{ey - er * 0.35:.1f}" x2="{rx - er * 0.1:.1f}" y2="{ey - er * 0.65:.1f}" stroke="#ffffff" stroke-width="{1.5 * sc:.2f}" stroke-linecap="round" opacity="0.85"/>
+        </g>
+        """
+
+    if accessory_id == "coroa_real":
+        w = 26 * sc
+        h = 15 * sc
+        base_y = hy + 2 * sc
+        top_y = base_y - h
+        mid_y = base_y - h * 0.55
+        return f"""
+        <g class="ms-acc-layer">
+            <path d="M{50 - w / 2:.1f} {base_y:.1f} L{50 - w * 0.55:.1f} {top_y + 2 * sc:.1f} L{50 - w * 0.22:.1f} {mid_y:.1f} L50 {top_y:.1f} L{50 + w * 0.22:.1f} {mid_y:.1f} L{50 + w * 0.55:.1f} {top_y + 2 * sc:.1f} L{50 + w / 2:.1f} {base_y:.1f} Z"
+                  fill="#fbbf24" stroke="#b45309" stroke-width="{1.6 * sc:.2f}" stroke-linejoin="round"/>
+            <rect x="{50 - w / 2:.1f}" y="{base_y - 3.2 * sc:.1f}" width="{w:.1f}" height="{3.4 * sc:.1f}" rx="{1.5 * sc:.1f}" fill="#f59e0b" stroke="#b45309" stroke-width="{1.3 * sc:.2f}"/>
+            <circle cx="50" cy="{base_y - 1.6 * sc:.1f}" r="{1.6 * sc:.1f}" fill="#ef4444"/>
+            <circle cx="{50 - w * 0.3:.1f}" cy="{base_y - 1.6 * sc:.1f}" r="{1.3 * sc:.1f}" fill="#3b82f6"/>
+            <circle cx="{50 + w * 0.3:.1f}" cy="{base_y - 1.6 * sc:.1f}" r="{1.3 * sc:.1f}" fill="#10b981"/>
+        </g>
+        """
+
+    if accessory_id == "chapeu_mago":
+        brim_rx = 22 * sc
+        brim_ry = 4.5 * sc
+        base_y = hy + 2 * sc
+        tip_y = max(2.0, base_y - 24 * sc)
+        return f"""
+        <g class="ms-acc-layer">
+            <ellipse cx="50" cy="{base_y:.1f}" rx="{brim_rx:.1f}" ry="{brim_ry:.1f}" fill="#312e81" stroke="#1e1b4b" stroke-width="{1.6 * sc:.2f}"/>
+            <path d="M{50 - 13 * sc:.1f} {base_y:.1f} Q48 {base_y - 13 * sc:.1f} {50 + 5 * sc:.1f} {tip_y:.1f} Q{50 + 11 * sc:.1f} {base_y - 11 * sc:.1f} {50 + 13 * sc:.1f} {base_y:.1f} Z"
+                  fill="#4338ca" stroke="#1e1b4b" stroke-width="{1.6 * sc:.2f}" stroke-linejoin="round"/>
+            <path d="M{50 - 12.2 * sc:.1f} {base_y - 1.5 * sc:.1f} Q50 {base_y + 1.2 * sc:.1f} {50 + 12.2 * sc:.1f} {base_y - 1.5 * sc:.1f}"
+                  fill="none" stroke="#fbbf24" stroke-width="{2.6 * sc:.2f}" stroke-linecap="round"/>
+            <circle cx="{50 - 2 * sc:.1f}" cy="{base_y - 9 * sc:.1f}" r="{1.6 * sc:.1f}" fill="#fde047"/>
+            <circle cx="{50 + 4 * sc:.1f}" cy="{base_y - 14 * sc:.1f}" r="{1.3 * sc:.1f}" fill="#fde047"/>
+            <circle cx="{50 - 5 * sc:.1f}" cy="{base_y - 15 * sc:.1f}" r="{1.1 * sc:.1f}" fill="#fef08a"/>
+        </g>
+        """
+
+    if accessory_id == "fone_gamer":
+        arc_r = hr + 2 * sc
+        ear_w = 6.5 * sc
+        ear_h = 13 * sc
+        return f"""
+        <g class="ms-acc-layer">
+            <path d="M{50 - arc_r:.1f} {ey:.1f} A{arc_r:.1f} {arc_r:.1f} 0 0 1 {50 + arc_r:.1f} {ey:.1f}"
+                  fill="none" stroke="#0f172a" stroke-width="{3.4 * sc:.2f}" stroke-linecap="round"/>
+            <path d="M{50 - arc_r:.1f} {ey:.1f} A{arc_r:.1f} {arc_r:.1f} 0 0 1 {50 + arc_r:.1f} {ey:.1f}"
+                  fill="none" stroke="#38bdf8" stroke-width="{1.4 * sc:.2f}" stroke-linecap="round"/>
+            <rect x="{50 - arc_r - ear_w * 0.6:.1f}" y="{ey - ear_h / 2:.1f}" width="{ear_w:.1f}" height="{ear_h:.1f}" rx="{3 * sc:.1f}"
+                  fill="#2563eb" stroke="#0f172a" stroke-width="{1.6 * sc:.2f}"/>
+            <rect x="{50 + arc_r - ear_w * 0.4:.1f}" y="{ey - ear_h / 2:.1f}" width="{ear_w:.1f}" height="{ear_h:.1f}" rx="{3 * sc:.1f}"
+                  fill="#2563eb" stroke="#0f172a" stroke-width="{1.6 * sc:.2f}"/>
+            <circle cx="{50 - arc_r - ear_w * 0.1:.1f}" cy="{ey:.1f}" r="{1.8 * sc:.1f}" fill="#38bdf8"/>
+            <circle cx="{50 + arc_r + ear_w * 0.1:.1f}" cy="{ey:.1f}" r="{1.8 * sc:.1f}" fill="#38bdf8"/>
+        </g>
+        """
+
+    if accessory_id == "super_heroi":
+        mask_w = (dx + er * 0.85)
+        mask_h = er * 0.95
+        lx = 50 - dx
+        rx = 50 + dx
+        hole_r = max(2.2, er * 0.52)
+        return f"""
+        <g class="ms-acc-layer">
+            <rect x="{50 - mask_w:.1f}" y="{ey - mask_h / 2:.1f}" width="{mask_w * 2:.1f}" height="{mask_h:.1f}" rx="{mask_h / 2:.1f}"
+                  fill="#dc2626" stroke="#7f1d1d" stroke-width="{1.4 * sc:.2f}"/>
+            <circle cx="{lx}" cy="{ey}" r="{hole_r:.1f}" fill="#ffffff"/>
+            <circle cx="{rx}" cy="{ey}" r="{hole_r:.1f}" fill="#ffffff"/>
+            <circle cx="{lx + 0.6 * sc:.1f}" cy="{ey + 0.4 * sc:.1f}" r="{hole_r * 0.52:.1f}" fill="#1e293b"/>
+            <circle cx="{rx - 0.6 * sc:.1f}" cy="{ey + 0.4 * sc:.1f}" r="{hole_r * 0.52:.1f}" fill="#1e293b"/>
+            <polygon points="50,{cy - 6 * sc:.1f} {50 + 2.2 * sc:.1f},{cy - 1.5 * sc:.1f} {50 + 7 * sc:.1f},{cy - 1.5 * sc:.1f} {50 + 3.2 * sc:.1f},{cy + 1.5 * sc:.1f} {50 + 4.6 * sc:.1f},{cy + 6 * sc:.1f} 50,{cy + 3.2 * sc:.1f} {50 - 4.6 * sc:.1f},{cy + 6 * sc:.1f} {50 - 3.2 * sc:.1f},{cy + 1.5 * sc:.1f} {50 - 7 * sc:.1f},{cy - 1.5 * sc:.1f} {50 - 2.2 * sc:.1f},{cy - 1.5 * sc:.1f}"
+                     fill="#facc15" stroke="#b45309" stroke-width="{1.1 * sc:.2f}"/>
+        </g>
+        """
+
+    if accessory_id == "astronauta":
+        dome_cx = 50
+        dome_cy = (hy + ey) / 2 + 4 * sc
+        dome_r = hr + 6 * sc
+        collar_y = dome_cy + dome_r * 0.82
+        return f"""
+        <g class="ms-acc-layer">
+            <line x1="50" y1="{max(2.0, dome_cy - dome_r):.1f}" x2="50" y2="{max(1.0, dome_cy - dome_r - 6 * sc):.1f}"
+                  stroke="#94a3b8" stroke-width="{2 * sc:.2f}" stroke-linecap="round"/>
+            <circle cx="50" cy="{max(2.0, dome_cy - dome_r - 6 * sc):.1f}" r="{2.2 * sc:.1f}" fill="#38bdf8"/>
+            <circle cx="{dome_cx}" cy="{dome_cy:.1f}" r="{dome_r:.1f}"
+                    fill="rgba(186,230,253,0.24)" stroke="#38bdf8" stroke-width="{2.4 * sc:.2f}"/>
+            <path d="M{dome_cx - dome_r * 0.55:.1f} {dome_cy - dome_r * 0.45:.1f} A{dome_r * 0.72:.1f} {dome_r * 0.72:.1f} 0 0 1 {dome_cx - dome_r * 0.1:.1f} {dome_cy - dome_r * 0.72:.1f}"
+                  fill="none" stroke="#ffffff" stroke-width="{2.2 * sc:.2f}" stroke-linecap="round" opacity="0.85"/>
+            <rect x="{dome_cx - dome_r * 0.72:.1f}" y="{collar_y - 2.5 * sc:.1f}" width="{dome_r * 1.44:.1f}" height="{5 * sc:.1f}" rx="{2.5 * sc:.1f}"
+                  fill="#f8fafc" stroke="#64748b" stroke-width="{1.5 * sc:.2f}"/>
+        </g>
+        """
+
+    return ""
+
+
+def tutor_svg(avatar_key, accessory_id="none"):
+    """Retorna o SVG completo do tutor vestido com o acessório/skin escolhido."""
+    base = PET_SVGS.get(avatar_key, OWL_SVG)
+    layer = _accessory_svg_layer(avatar_key, accessory_id)
+    if not layer:
+        return base
+    return base.replace("</svg>", layer + "</svg>")
+
+
+def avatar_html(avatar_key, css_class="ms-avatar", accessory_id="none"):
+    """Avatar animado (SVG) com skin/acessório equipado."""
+    if avatar_key in PET_SVGS:
+        return f"<span class='{css_class} ms-avatar-emoji'>{tutor_svg(avatar_key, accessory_id)}</span>"
 
     emoji = AVATARS.get(avatar_key, {}).get("emoji", "🙂")
     return f"<span class='{css_class} ms-avatar-emoji'>{emoji}</span>"
@@ -381,6 +586,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock
 .ms-avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; background: #eaf2ff; border: 2px solid #fff; box-shadow: 0 3px 10px rgba(28,52,110,.15); }
 .ms-avatar-emoji { display: inline-grid; place-items: center; font-size: 1.6rem; }
 .ms-avatar-lg { width: 62px; height: 62px; }
+.ms-avatar-xl { width: 112px; height: 112px; background: radial-gradient(circle at 30% 30%, #ffffff, #dbeafe); border: 3px solid #93c5fd; }
 
 /* ---------- Cabeçalho do chat ---------- */
 .ms-chat-head {
@@ -521,7 +727,7 @@ st.markdown(APP_CSS, unsafe_allow_html=True)
 
 
 # =========================================================
-# META DE ESTUDOS, RECOMPENSA DIÁRIA E DESCONTO NA MENSALIDADE
+# META DE ESTUDOS, RECOMPENSA DIÁRIA, LOJINHA E DESCONTO
 # =========================================================
 
 STUDY_PROGRESS_DIR = Path(DB_PATH).parent / "progress"
@@ -572,6 +778,19 @@ def _load_study_progress(user_id):
     if goal not in DAILY_GOAL_OPTIONS:
         goal = 10
 
+    unlocked = data.get("unlocked_accessories")
+    if not isinstance(unlocked, list):
+        unlocked = ["none"]
+    if "none" not in unlocked:
+        unlocked.insert(0, "none")
+
+    equipped = data.get("equipped_accessories")
+    if not isinstance(equipped, dict):
+        equipped = {}
+    for k in AVATARS:
+        if equipped.get(k) not in unlocked:
+            equipped[k] = "none"
+
     data["daily_goal_minutes"] = goal
     data["seconds_today"] = int(data.get("seconds_today") or 0)
     data["claimed_today"] = bool(data.get("claimed_today", False))
@@ -580,6 +799,8 @@ def _load_study_progress(user_id):
     data["last_claimed_date"] = str(data.get("last_claimed_date") or "")
     data["month_completed_days"] = int(data.get("month_completed_days") or 0)
     data["latest_treat"] = str(data.get("latest_treat") or "")
+    data["unlocked_accessories"] = unlocked
+    data["equipped_accessories"] = equipped
     return data
 
 
@@ -645,6 +866,35 @@ def _claim_daily_reward(user_id, avatar_key):
     return True
 
 
+def _unlock_or_equip_accessory(user_id, avatar_key, item_id, is_subscriber=False):
+    """Desbloqueia (trocando estrelas ou pelo plano VIP) e equipa o acessório no tutor."""
+    item = next((x for x in TUTOR_ACCESSORIES if x["id"] == item_id), None)
+    if not item:
+        return False, "Item não encontrado."
+
+    data = _load_study_progress(user_id)
+    unlocked = data["unlocked_accessories"]
+    already_unlocked = (
+        item_id in unlocked
+        or item["stars"] == 0
+        or (item.get("vip_free") and is_subscriber)
+    )
+
+    if not already_unlocked:
+        cost = int(item["stars"])
+        if data["total_stars"] < cost:
+            return False, f"Você precisa de {cost} ⭐ para desbloquear este item."
+        data["total_stars"] -= cost
+        unlocked.append(item_id)
+
+    elif item_id not in unlocked:
+        unlocked.append(item_id)
+
+    data["equipped_accessories"][avatar_key] = item_id
+    _save_study_progress(user_id, data)
+    return True, f"{item['name']} equipado em {AVATARS[avatar_key]['label']}!"
+
+
 def _calculate_discount_info(data):
     """Calcula o percentual de desconto conquistado no mês e a próxima meta."""
     days = int(data.get("month_completed_days") or 0)
@@ -704,6 +954,7 @@ def logout():
         "interaction_mode",
         "voice_enabled",
         "autoplay_latest_conv",
+        "shop_tutor_select",
         "page",
     )
 
@@ -746,7 +997,6 @@ def show_auth():
             unsafe_allow_html=True,
         )
 
-        default_tab = st.session_state.get("auth_tab", "login")
         tabs = st.tabs(["Entrar", "Criar conta"])
 
         # --------------------- LOGIN ---------------------
@@ -945,8 +1195,6 @@ def _html_component(html, key=None, **kwargs):
         return components.html(html, **kwargs)
 
 
-# Velocidade natural (1.0) para preservar o timbre original das vozes Gemini TTS
-# (Olívia = Sulafat, Fifi = Leda, Bolt = Fenrir, Mimi = Aoede).
 VOICE_PLAYBACK_RATE = {
     "coruja": 1.0,
     "borboleta": 1.0,
@@ -1100,11 +1348,12 @@ def _render_voice_button(
     text,
     key,
     avatar_key="coruja",
+    accessory_id="none",
     language="pt-BR",
     auto_prepare=False,
     autoplay=False,
 ):
-    """Lê a resposta com a voz exclusiva de cada tutor (Gemini TTS) e anima o mascote."""
+    """Lê a resposta com a voz exclusiva de cada tutor (Gemini TTS) e anima o mascote vestido."""
     safe_key = re.sub(r"[^a-zA-Z0-9_-]", "_", str(key))
     ready_key = f"voice_ready_{safe_key}"
     tutor_label = AVATARS.get(avatar_key, AVATARS["coruja"])["label"]
@@ -1130,7 +1379,7 @@ def _render_voice_button(
             st.rerun()
         return
 
-    svg = PET_SVGS.get(avatar_key, OWL_SVG)
+    svg = tutor_svg(avatar_key, accessory_id)
 
     mouth = """
     <ellipse class="ms-talking-mouth"
@@ -1156,7 +1405,7 @@ def _render_voice_button(
 
     _html_component(
         html,
-        key=f"voice_{safe_key}_{avatar_key}_{'play' if should_autoplay else 'idle'}",
+        key=f"voice_{safe_key}_{avatar_key}_{accessory_id}_{'play' if should_autoplay else 'idle'}",
         height=88,
         scrolling=False,
     )
@@ -1400,10 +1649,13 @@ def show_topbar(user):
 
 def show_left_panel(user):
     page = st.session_state.get("page", "chat")
+    progress = _load_study_progress(user["id"])
+    equipped_map = progress["equipped_accessories"]
 
     nav_items = [
         ("chat", "🏠  Início"),
         ("subjects", "📖  Matérias"),
+        ("shop", "🛍️  Lojinha"),
         ("history", "🕘  Histórico"),
         ("account", "👤  Perfil"),
     ]
@@ -1432,6 +1684,7 @@ def show_left_panel(user):
 
         for key, data in AVATARS.items():
             name, species = [p.strip() for p in data["label"][2:].split("—")]
+            acc_id = equipped_map.get(key, "none")
 
             try:
                 cols = st.columns([1, 3], vertical_alignment="center")
@@ -1439,7 +1692,7 @@ def show_left_panel(user):
                 cols = st.columns([1, 3])
 
             with cols[0]:
-                st.markdown(avatar_html(key), unsafe_allow_html=True)
+                st.markdown(avatar_html(key, accessory_id=acc_id), unsafe_allow_html=True)
 
             with cols[1]:
                 st.button(
@@ -1658,6 +1911,122 @@ def show_right_panel(user):
 
 
 # =========================================================
+# LOJINHA DE SKINS E ACESSÓRIOS DOS TUTORES
+# =========================================================
+
+def show_shop(user):
+    progress = _load_study_progress(user["id"])
+    stars = progress["total_stars"]
+    unlocked = progress["unlocked_accessories"]
+    equipped_map = progress["equipped_accessories"]
+
+    subscription = get_subscription(user["id"])
+    is_subscriber = bool(subscription and subscription["status"] == "active")
+
+    st.markdown("## 🛍️ Lojinha de Visuais dos Tutores")
+    st.caption(
+        f"Você tem **⭐ {stars} estrelas** acumuladas. "
+        "Conclua sua meta diária de estudo para ganhar mais estrelas e vestir seus tutores!"
+    )
+
+    if st.session_state.get("shop_feedback"):
+        kind, msg = st.session_state.pop("shop_feedback")
+        (st.success if kind == "ok" else st.warning)(msg)
+
+    default_tutor = user.get("avatar", "cachorro")
+    if default_tutor not in AVATARS:
+        default_tutor = "cachorro"
+
+    st.session_state.setdefault("shop_tutor_select", default_tutor)
+
+    selected_tutor = st.radio(
+        "Escolha o tutor para experimentar:",
+        list(AVATARS.keys()),
+        format_func=lambda k: AVATARS[k]["label"],
+        key="shop_tutor_select",
+        horizontal=True,
+    )
+
+    current_equipped = equipped_map.get(selected_tutor, "none")
+
+    cols = st.columns(3)
+    for idx, item in enumerate(TUTOR_ACCESSORIES):
+        item_id = item["id"]
+        is_equipped = current_equipped == item_id
+        is_unlocked = (
+            item_id in unlocked
+            or item["stars"] == 0
+            or (item.get("vip_free") and is_subscriber)
+        )
+
+        with cols[idx % 3]:
+            with st.container(border=True):
+                st.markdown(
+                    f"<div style='text-align:center;padding:6px 0 4px'>"
+                    f"{avatar_html(selected_tutor, 'ms-avatar ms-avatar-xl', accessory_id=item_id)}"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown(
+                    f"<div style='text-align:center;font-weight:800;font-size:1.02rem;margin-top:4px'>"
+                    f"{item['emoji']} {html_lib.escape(item['name'])}</div>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown(
+                    f"<div style='text-align:center;font-size:.82rem;color:#5C6880;min-height:36px;margin:4px 0 8px'>"
+                    f"{html_lib.escape(item['desc'])}</div>",
+                    unsafe_allow_html=True,
+                )
+
+                if is_equipped:
+                    st.button(
+                        "✅ Equipado",
+                        key=f"shop_btn_{selected_tutor}_{item_id}",
+                        use_container_width=True,
+                        disabled=True,
+                    )
+                elif is_unlocked:
+                    if st.button(
+                        "👕 Equipar",
+                        key=f"shop_btn_{selected_tutor}_{item_id}",
+                        use_container_width=True,
+                        type="primary",
+                    ):
+                        ok, msg = _unlock_or_equip_accessory(
+                            user["id"], selected_tutor, item_id, is_subscriber=is_subscriber
+                        )
+                        st.session_state["shop_feedback"] = ("ok" if ok else "warn", msg)
+                        st.rerun()
+                else:
+                    cost = item["stars"]
+                    can_afford = stars >= cost
+                    btn_label = (
+                        f"⭐ Desbloquear ({cost} ⭐)"
+                        if can_afford
+                        else f"🔒 {cost} ⭐ (faltam {cost - stars})"
+                    )
+                    if st.button(
+                        btn_label,
+                        key=f"shop_btn_{selected_tutor}_{item_id}",
+                        use_container_width=True,
+                        type="primary" if can_afford else "secondary",
+                        disabled=not can_afford,
+                    ):
+                        ok, msg = _unlock_or_equip_accessory(
+                            user["id"], selected_tutor, item_id, is_subscriber=is_subscriber
+                        )
+                        if ok:
+                            st.balloons()
+                        st.session_state["shop_feedback"] = ("ok" if ok else "warn", msg)
+                        st.rerun()
+
+    st.divider()
+    if st.button("← Voltar ao chat", key="shop_back_to_chat"):
+        st.session_state["page"] = "chat"
+        st.rerun()
+
+
+# =========================================================
 # MATÉRIAS E HISTÓRICO
 # =========================================================
 
@@ -1731,7 +2100,7 @@ def show_account(user):
         f"**Tutor-avatar escolhido:** {AVATARS[avatar_key]['label']}"
     )
 
-    st.caption("Para trocar o avatar, use a lista Seu tutor no painel à esquerda.")
+    st.caption("Para trocar o avatar ou vestir acessórios, use Seu tutor e a Lojinha no painel à esquerda.")
 
     st.divider()
     show_user_avatar_editor(user)
@@ -1783,8 +2152,8 @@ def show_account(user):
             st.markdown(f"### {_format_brl(PRICE)} por mês")
 
         st.write(
-            "Acesso aos tutores com uso sujeito a uma política de uso "
-            "justo, que será definida após os testes."
+            "Acesso aos tutores e ao Capacete Espacial VIP, com uso sujeito "
+            "a uma política de uso justo que será definida após os testes."
         )
 
         st.warning(
@@ -2032,6 +2401,9 @@ def show_chat(user):
     if avatar_key not in AVATARS:
         avatar_key = "cachorro"
 
+    progress = _load_study_progress(user["id"])
+    equipped_accessory = progress["equipped_accessories"].get(avatar_key, "none")
+
     tutor_name, tutor_species = [
         p.strip() for p in AVATARS[avatar_key]["label"][2:].split("—")
     ]
@@ -2059,7 +2431,7 @@ def show_chat(user):
         st.markdown(
             f"""
             <div class="ms-chat-head">
-                {avatar_html(avatar_key, "ms-avatar ms-avatar-lg")}
+                {avatar_html(avatar_key, "ms-avatar ms-avatar-lg", accessory_id=equipped_accessory)}
                 <div>
                     <div class="ms-chat-name">{html_lib.escape(tutor_name)}</div>
                     <div class="ms-chat-sub">{html_lib.escape(tutor_species)} · {html_lib.escape(subject['name'])}</div>
@@ -2127,6 +2499,7 @@ def show_chat(user):
                             f"history_{active_id}_"
                             f"{item.get('id', item.get('created_at', 'message'))}",
                             avatar_key=avatar_key,
+                            accessory_id=equipped_accessory,
                             language="en-US" if is_english_subject(subject) else "pt-BR",
                             auto_prepare=is_latest_reply,
                             autoplay=is_latest_reply and should_autoplay_latest,
@@ -2392,6 +2765,8 @@ def main():
             show_account(user)
         elif page == "subjects":
             show_subjects(user)
+        elif page == "shop":
+            show_shop(user)
         elif page == "history":
             show_history(user)
         else:
