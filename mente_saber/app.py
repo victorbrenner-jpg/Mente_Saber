@@ -759,22 +759,209 @@ def _html_component(html, key=None, **kwargs):
         return components.html(html, **kwargs)
 
 
+# Efeito leve de "personalidade" na voz (1.0 = natural). Deixe tudo em 1.0 para desligar.
+VOICE_PLAYBACK_RATE = {
+    "coruja": 0.97,
+    "borboleta": 1.08,
+    "cachorro": 1.0,
+    "gato": 1.05,
+}
+
+
+@st.cache_data(show_spinner=False, max_entries=60, ttl=3600)
+def _cached_tutor_audio(text, avatar_key):
+    """Gera (e guarda em cache) o áudio do tutor. Falhas levantam erro para não ficarem em cache."""
+    audio = tutor.generate_audio_for_avatar(text, avatar_key)
+    if not audio:
+        raise RuntimeError("Não foi possível gerar o áudio.")
+    return audio
+
+
+_VOICE_HTML = r"""
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+    body { margin: 0; background: transparent; font-family: Arial, sans-serif; }
+    .voice-wrap { display: flex; align-items: center; gap: 10px; min-height: 76px; }
+    .ms-tutor-avatar { width: 68px; height: 68px; flex: 0 0 68px;
+        animation: ms-float 2s ease-in-out infinite; }
+    .ms-tutor-avatar svg { width: 100%; height: 100%; overflow: visible; }
+    .ms-talking-mouth { transform-box: fill-box; transform-origin: center; transform: scaleY(.12); }
+    .ms-tutor-avatar.speaking { animation: ms-bounce .45s ease-in-out infinite alternate; }
+    .ms-tutor-avatar.speaking.css-mouth .ms-talking-mouth {
+        animation: ms-mouth .17s ease-in-out infinite alternate; }
+    .voice-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    button { border: 1px solid #cbd5e1; border-radius: 9px; background: #fff;
+        padding: 8px 11px; cursor: pointer; color: #234; font-weight: 600; }
+    #ms-speak { background: #2563eb; color: white; border-color: #2563eb; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    #ms-voice-status { margin-top: 5px; font-size: 12px; color: #3979e8; }
+    @keyframes ms-mouth { from { transform: scaleY(.12); } to { transform: scaleY(1.7); } }
+    @keyframes ms-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    @keyframes ms-bounce { from { transform: translateY(0) rotate(-3deg); }
+                           to { transform: translateY(-6px) rotate(3deg); } }
+</style>
+</head>
+<body>
+<div class="voice-wrap">
+    <div class="ms-tutor-avatar" id="ms-avatar">__SVG__</div>
+    <div>
+        <div class="voice-actions">
+            <button id="ms-speak" type="button">▶ Ouvir resposta</button>
+            <button id="ms-stop" type="button">⏹ Parar</button>
+        </div>
+        <div id="ms-voice-status" role="status" aria-live="polite">Pronto para ouvir</div>
+    </div>
+</div>
+<script>
+    const AUDIO_B64 = __AUDIO__;
+    const MESSAGE = __TEXT__;
+    const LANGUAGE = __LANG__;
+    const RATE = __RATE__;
+    const AUTOPLAY = __AUTOPLAY__;
+
+    const avatar = document.getElementById("ms-avatar");
+    const mouth = avatar.querySelector(".ms-talking-mouth");
+    const status = document.getElementById("ms-voice-status");
+    const speakButton = document.getElementById("ms-speak");
+    const stopButton = document.getElementById("ms-stop");
+
+    let audioEl = null, audioCtx = null, analyser = null, raf = null;
+
+    function cleanForSpeech(value) {
+        return value
+            .replace(/```[\s\S]*?```/g, " bloco de código ")
+            .replace(/`([^`]+)`/g, "$1")
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+            .replace(/[*_#~]/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    function setSpeaking(on) {
+        avatar.classList.toggle("speaking", on);
+        speakButton.disabled = on;
+        if (!on) {
+            cancelAnimationFrame(raf);
+            if (mouth) mouth.style.transform = "";
+            avatar.classList.remove("css-mouth");
+        }
+    }
+
+    function animateMouth() {
+        if (!analyser || !mouth) { avatar.classList.add("css-mouth"); return; }
+        const data = new Uint8Array(analyser.fftSize);
+        const loop = () => {
+            analyser.getByteTimeDomainData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v; }
+            const level = Math.min(1, Math.sqrt(sum / data.length) * 4);
+            mouth.style.transform = "scaleY(" + (0.12 + level * 1.8).toFixed(2) + ")";
+            raf = requestAnimationFrame(loop);
+        };
+        loop();
+    }
+
+    function playRecorded() {
+        if (audioEl) { audioEl.pause(); }
+        audioEl = new Audio("data:audio/wav;base64," + AUDIO_B64);
+        audioEl.preservesPitch = false;
+        audioEl.mozPreservesPitch = false;
+        audioEl.webkitPreservesPitch = false;
+        audioEl.playbackRate = RATE;
+
+        try {
+            audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioCtx.createMediaElementSource(audioEl);
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 512;
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            if (audioCtx.state === "suspended") audioCtx.resume();
+        } catch (e) { analyser = null; }
+
+        audioEl.onplay = () => { setSpeaking(true); status.textContent = "🔊 Tutor falando..."; animateMouth(); };
+        audioEl.onended = () => { setSpeaking(false); status.textContent = "Explicação concluída!"; };
+        audioEl.onerror = () => { setSpeaking(false); status.textContent = "Não foi possível tocar o áudio."; };
+        audioEl.play().catch(() => {
+            setSpeaking(false);
+            status.textContent = "Toque em ▶ Ouvir resposta para começar.";
+        });
+    }
+
+    function playBrowserVoice() {
+        if (!("speechSynthesis" in window)) {
+            status.textContent = "Seu navegador não oferece leitura por voz.";
+            return;
+        }
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(cleanForSpeech(MESSAGE));
+        u.lang = LANGUAGE; u.rate = 0.95; u.pitch = 1.1;
+        const voices = window.speechSynthesis.getVoices();
+        const prefix = LANGUAGE.toLowerCase().split("-")[0];
+        const v = voices.find(x => x.lang.toLowerCase() === LANGUAGE.toLowerCase())
+               || voices.find(x => x.lang.toLowerCase().startsWith(prefix));
+        if (v) u.voice = v;
+        u.onstart = () => { setSpeaking(true); avatar.classList.add("css-mouth"); status.textContent = "🔊 Tutor falando (voz do navegador)..."; };
+        u.onend = () => { setSpeaking(false); status.textContent = "Explicação concluída!"; };
+        u.onerror = (e) => { setSpeaking(false); status.textContent = "Não foi possível reproduzir: " + e.error; };
+        window.speechSynthesis.speak(u);
+    }
+
+    function start() { AUDIO_B64 ? playRecorded() : playBrowserVoice(); }
+
+    speakButton.addEventListener("click", start);
+    stopButton.addEventListener("click", () => {
+        if (audioEl) { audioEl.pause(); audioEl.currentTime = 0; }
+        if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+        setSpeaking(false);
+        status.textContent = "Áudio interrompido.";
+    });
+
+    if (AUTOPLAY) start();
+</script>
+</body>
+</html>
+"""
+
+
 def _render_voice_button(
     text,
     key,
     avatar_key="coruja",
     language="pt-BR",
 ):
-    """Reproduz a resposta com voz do navegador e anima o mascote."""
+    """Lê a resposta com a voz própria de cada tutor (Gemini TTS) e anima o mascote.
 
-    safe_text = json.dumps(str(text), ensure_ascii=False)
+    O áudio só é gerado quando a criança clica em "Ouvir resposta" e fica em cache.
+    Se a geração falhar, usa a voz do navegador como alternativa.
+    """
     safe_key = re.sub(r"[^a-zA-Z0-9_-]", "_", str(key))
+    ready_key = f"voice_ready_{safe_key}"
 
-    # Reutiliza os SVGs originais do Mente Saber.
+    if not st.session_state.get(ready_key):
+        if st.button("🔊 Ouvir resposta", key=f"voice_btn_{safe_key}"):
+            st.session_state[ready_key] = True
+            st.session_state["voice_autoplay_key"] = safe_key
+            st.rerun()
+        return
+
+    audio_b64 = ""
+    try:
+        with st.spinner("O tutor está preparando a voz..."):
+            audio = _cached_tutor_audio(str(text), avatar_key)
+        audio_b64 = base64.b64encode(audio).decode("ascii")
+    except Exception:
+        st.caption(
+            "Não consegui gerar a voz do tutor agora; usando a voz do navegador. "
+            "Confira GEMINI_API_KEY e o modelo GEMINI_TTS_MODEL no .env."
+        )
+
     svg = PET_SVGS.get(avatar_key, OWL_SVG)
 
-    # Camada simples de boca animada. A animação é visual, não é
-    # sincronização fonética/silábica real.
+    # Boca animada: acompanha o volume do áudio (ou animação simples no modo alternativo).
     mouth = """
     <ellipse class="ms-talking-mouth"
         cx="50" cy="66" rx="4" ry="2.4"
@@ -782,175 +969,24 @@ def _render_voice_button(
     """
     svg = svg.replace("</svg>", mouth + "</svg>")
 
+    html = (
+        _VOICE_HTML
+        .replace("__SVG__", svg)
+        .replace("__AUDIO__", json.dumps(audio_b64))
+        .replace("__TEXT__", json.dumps(str(text), ensure_ascii=False))
+        .replace("__LANG__", json.dumps(language))
+        .replace("__RATE__", str(VOICE_PLAYBACK_RATE.get(avatar_key, 1.0)))
+        .replace(
+            "__AUTOPLAY__",
+            "true" if st.session_state.get("voice_autoplay_key") == safe_key else "false",
+        )
+    )
+
     _html_component(
-        f"""
-        <!doctype html>
-        <html lang="pt-BR">
-        <head>
-            <meta charset="utf-8">
-            <style>
-                body {{
-                    margin: 0;
-                    background: transparent;
-                    font-family: Arial, sans-serif;
-                }}
-                .voice-wrap {{
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    min-height: 76px;
-                }}
-                .ms-tutor-avatar {{
-                    width: 68px;
-                    height: 68px;
-                    flex: 0 0 68px;
-                    animation: ms-float 2s ease-in-out infinite;
-                }}
-                .ms-tutor-avatar svg {{
-                    width: 100%;
-                    height: 100%;
-                    overflow: visible;
-                }}
-                .ms-talking-mouth {{
-                    transform-box: fill-box;
-                    transform-origin: center;
-                    transform: scaleY(.12);
-                }}
-                .ms-tutor-avatar.speaking .ms-talking-mouth {{
-                    animation: ms-mouth .17s ease-in-out infinite alternate;
-                }}
-                .voice-actions {{
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 6px;
-                }}
-                button {{
-                    border: 1px solid #cbd5e1;
-                    border-radius: 9px;
-                    background: #fff;
-                    padding: 8px 11px;
-                    cursor: pointer;
-                    color: #234;
-                    font-weight: 600;
-                }}
-                #ms-speak {{
-                    background: #2563eb;
-                    color: white;
-                    border-color: #2563eb;
-                }}
-                button:disabled {{
-                    opacity: .55;
-                    cursor: not-allowed;
-                }}
-                #ms-voice-status {{
-                    margin-top: 5px;
-                    font-size: 12px;
-                    color: #3979e8;
-                }}
-                @keyframes ms-mouth {{
-                    from {{ transform: scaleY(.12); }}
-                    to {{ transform: scaleY(1.7); }}
-                }}
-                @keyframes ms-float {{
-                    0%, 100% {{ transform: translateY(0); }}
-                    50% {{ transform: translateY(-3px); }}
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="voice-wrap">
-                <div class="ms-tutor-avatar" id="ms-avatar">
-                    {svg}
-                </div>
-                <div>
-                    <div class="voice-actions">
-                        <button id="ms-speak" type="button">🔊 Ouvir resposta</button>
-                        <button id="ms-stop" type="button">⏹ Parar</button>
-                    </div>
-                    <div id="ms-voice-status" role="status" aria-live="polite">
-                        Pronto para ouvir
-                    </div>
-                </div>
-            </div>
-            <script>
-                const message = {safe_text};
-                const language = {json.dumps(language)};
-                const avatar = document.getElementById("ms-avatar");
-                const status = document.getElementById("ms-voice-status");
-                const speakButton = document.getElementById("ms-speak");
-                const stopButton = document.getElementById("ms-stop");
-
-                function cleanForSpeech(value) {{
-                    return value
-                        .replace(/```[\\s\\S]*?```/g, " bloco de código ")
-                        .replace(/`([^`]+)`/g, "$1")
-                        .replace(/\\[([^\\]]+)\\]\\([^)]+\\)/g, "$1")
-                        .replace(/[*_#~]/g, "")
-                        .replace(/\\s+/g, " ")
-                        .trim();
-                }}
-
-                speakButton.addEventListener("click", () => {{
-                    if (!("speechSynthesis" in window)) {{
-                        status.textContent = "Seu navegador não oferece leitura por voz.";
-                        return;
-                    }}
-
-                    window.speechSynthesis.cancel();
-
-                    const utterance = new SpeechSynthesisUtterance(
-                        cleanForSpeech(message)
-                    );
-                    utterance.lang = language;
-                    utterance.rate = language.startsWith("en") ? 0.88 : 0.95;
-                    utterance.pitch = 1.04;
-
-                    const voices = window.speechSynthesis.getVoices();
-                    const prefix = language.toLowerCase().split("-")[0];
-                    const exactVoice = voices.find(v =>
-                        v.lang.toLowerCase() === language.toLowerCase()
-                    );
-                    const fallbackVoice = voices.find(v =>
-                        v.lang.toLowerCase().startsWith(prefix)
-                    );
-                    if (exactVoice || fallbackVoice) {{
-                        utterance.voice = exactVoice || fallbackVoice;
-                    }}
-
-                    utterance.onstart = () => {{
-                        avatar.classList.add("speaking");
-                        status.textContent = "🔊 Tutor falando...";
-                        speakButton.disabled = true;
-                    }};
-                    utterance.onend = () => {{
-                        avatar.classList.remove("speaking");
-                        status.textContent = "Explicação concluída.";
-                        speakButton.disabled = false;
-                    }};
-                    utterance.onerror = (event) => {{
-                        avatar.classList.remove("speaking");
-                        status.textContent = "Não foi possível reproduzir: " + event.error;
-                        speakButton.disabled = false;
-                    }};
-
-                    window.speechSynthesis.speak(utterance);
-                }});
-
-                stopButton.addEventListener("click", () => {{
-                    if ("speechSynthesis" in window) {{
-                        window.speechSynthesis.cancel();
-                    }}
-                    avatar.classList.remove("speaking");
-                    speakButton.disabled = false;
-                    status.textContent = "Áudio interrompido.";
-                }});
-            </script>
-        </body>
-        </html>
-        """,
+        html,
+        key=f"voice_{safe_key}",
         height=88,
         scrolling=False,
-        key=f"voice_{safe_key}",
     )
 
 
@@ -1339,7 +1375,7 @@ def show_right_panel(user):
         st.checkbox(
             "🔊 Controles de voz",
             key="voice_enabled",
-            help="Exibe botões para ouvir as respostas usando a voz do navegador.",
+            help="Mostra o botão para ouvir as respostas com a voz de cada tutor.",
         )
 
     tip = DAILY_TIPS[date.today().toordinal() % len(DAILY_TIPS)]
