@@ -747,6 +747,41 @@ div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock
     background: transparent; border: none !important; box-shadow: none; border-radius: 0 !important;
 }
 
+/* ---------- Cards padronizados de Matérias ---------- */
+.ms-subject-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    height: 138px;
+    margin-bottom: 10px;
+}
+.ms-subject-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--ms-ink);
+    min-height: 46px;
+    margin-bottom: 8px;
+}
+.ms-subject-emoji {
+    font-size: 1.55rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.ms-subject-desc {
+    font-size: .85rem;
+    line-height: 1.42;
+    color: var(--ms-muted) !important;
+    height: 76px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
 /* ---------- Botões ---------- */
 .stButton > button, .stFormSubmitButton > button {
     border-radius: 12px; min-height: 2.6rem; font-weight: 600;
@@ -2205,9 +2240,17 @@ def show_subjects(user):
         for col, subject in zip(cols, SUBJECTS[start:start + 3]):
             with col:
                 with st.container(border=True):
-                    emoji = subject.get("emoji", "📘")
-                    st.markdown(f"### {emoji} {subject['name']}")
-                    st.caption(subject.get("description", ""))
+                    emoji = html_lib.escape(str(subject.get("emoji", "📘")))
+                    name = html_lib.escape(str(subject.get("name", "")))
+                    desc = html_lib.escape(str(subject.get("description", "")))
+
+                    st.markdown(
+                        f'<div class="ms-subject-body">'
+                        f'<div class="ms-subject-title"><span class="ms-subject-emoji">{emoji}</span><span>{name}</span></div>'
+                        f'<div class="ms-subject-desc">{desc}</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
 
                     st.button(
                         "Estudar",
