@@ -3,7 +3,7 @@ import json
 import base64
 import time
 import html as html_lib
-from datetime import date
+from datetime import date, timedelta
 from functools import lru_cache
 import re
 import inspect
@@ -333,8 +333,13 @@ h1, h2, h3, p, label, span { color: var(--ms-ink); }
 .ms-brand-name { color: #fff !important; font-weight: 800; font-size: 1.55rem; letter-spacing: -.03em; line-height: 1.1; }
 .ms-brand-name b { color: #bfe3ff !important; }
 .ms-brand-tag { color: #dbe9ff !important; font-size: .82rem; }
-.ms-user { display: flex; align-items: center; gap: 14px; color: #fff; font-weight: 600; }
+.ms-user { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 600; }
 .ms-user span { color: #fff !important; }
+.ms-star-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255, 224, 102, .22); border: 1px solid rgba(255, 230, 128, .45);
+    padding: 5px 12px; border-radius: 999px; font-size: .86rem; font-weight: 700;
+}
 .ms-user-chip {
     display: flex; align-items: center; gap: 9px; background: rgba(255,255,255,.16);
     padding: 5px 14px 5px 6px; border-radius: 999px;
@@ -413,23 +418,47 @@ div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
 div[data-testid="stChatInput"] { border-radius: 16px; border: 1px solid #cfe0f7; background: #fff; }
 div[data-testid="stChatInput"] button { background: linear-gradient(135deg,#4f8cf0,#2f6fe0); color: #fff; border-radius: 12px; }
 
-/* ---------- Painel lateral direito ---------- */
+/* ---------- Painel lateral direito (Meta, Recompensas e Desconto) ---------- */
 .ms-hero {
-    border-radius: 20px; padding: 26px 18px 18px;
+    border-radius: 20px; padding: 18px 15px 15px;
     background:
-        linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.35)),
+        linear-gradient(180deg, rgba(255,255,255,.84), rgba(242,248,255,.68)),
         linear-gradient(140deg, #cfe0ff, #dff1ff);
     background-size: cover; background-position: center; margin-bottom: 10px;
+    border: 1px solid #d8e6fb;
 }
 .ms-hero h2 {
-    font-family: "Segoe Script", "Brush Script MT", cursive; font-size: 1.9rem; line-height: 1.15;
-    color: #1f4fb0 !important; transform: rotate(-4deg); margin: 0 0 16px; text-align: center;
+    font-family: "Segoe Script", "Brush Script MT", cursive; font-size: 1.58rem; line-height: 1.15;
+    color: #1f4fb0 !important; transform: rotate(-2deg); margin: 0 0 12px; text-align: center;
 }
-.ms-chip {
-    display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px;
-    padding: 10px 12px; margin-bottom: 8px; font-weight: 600; font-size: .88rem;
-    box-shadow: 0 6px 16px rgba(28,52,110,.10);
+.ms-goal-card {
+    background: #fff; border-radius: 14px; padding: 10px 12px; margin-bottom: 8px;
+    box-shadow: 0 6px 16px rgba(28,52,110,.08); border: 1px solid #e7effb;
 }
+.ms-goal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: .82rem; font-weight: 700; margin-bottom: 6px;
+}
+.ms-goal-bar {
+    width: 100%; height: 9px; border-radius: 999px; background: #e6eefc; overflow: hidden;
+}
+.ms-goal-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #3b82e6, #2fae7b);
+    transition: width .35s ease;
+}
+.ms-goal-fill.gold {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+.ms-goal-sub {
+    font-size: .76rem; color: var(--ms-muted) !important; margin-top: 5px; line-height: 1.3;
+}
+.ms-reward-badge {
+    display: flex; align-items: center; gap: 8px; background: #ecfdf5;
+    border: 1px solid #a7f3d0; border-radius: 12px; padding: 8px 10px;
+    font-size: .8rem; font-weight: 600; color: #065f46 !important; margin-bottom: 8px;
+}
+.ms-reward-badge span { color: #065f46 !important; }
 .ms-tip { background: #fff8e6; border: 1px solid #fde9b0; border-radius: 16px; padding: 12px 14px; }
 .ms-tip b { color: #8a5a00 !important; }
 .ms-quote { background: #eaf7f0; border-radius: 16px; padding: 14px; text-align: center; color: #1c6b4c; }
@@ -489,6 +518,161 @@ div[data-testid="stChatInput"] button { background: linear-gradient(135deg,#4f8c
 """
 
 st.markdown(APP_CSS, unsafe_allow_html=True)
+
+
+# =========================================================
+# META DE ESTUDOS, RECOMPENSA DIÁRIA E DESCONTO NA MENSALIDADE
+# =========================================================
+
+STUDY_PROGRESS_DIR = Path(DB_PATH).parent / "progress"
+
+DAILY_GOAL_OPTIONS = [5, 10, 15, 20]  # minutos por dia
+DAILY_REWARD_STARS = 10
+
+DISCOUNT_TIERS = [
+    (7, 10),   # 7 dias com meta batida no mês -> 10% de desconto
+    (15, 20),  # 15 dias com meta batida no mês -> 20% de desconto
+]
+
+TUTOR_DAILY_TREATS = {
+    "coruja": ("🪶 Pena Mágica da Sabedoria", "Olívia guardou a pena brilhante na biblioteca!"),
+    "borboleta": ("🌸 Flor de Cristal", "Fifi pousou feliz na sua nova flor brilhante!"),
+    "cachorro": ("🦴 Ossinho Dourado", "Bolt abanou o rabo de alegria com o ossinho!"),
+    "gato": ("🧶 Novelo Estrelado", "Mimi ronronou de felicidade com o novelo!"),
+}
+
+
+def _progress_file(user_id):
+    STUDY_PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
+    return STUDY_PROGRESS_DIR / f"u{int(user_id)}.json"
+
+
+def _load_study_progress(user_id):
+    today_str = date.today().isoformat()
+    month_str = date.today().strftime("%Y-%m")
+    path = _progress_file(user_id)
+
+    data = {}
+    if path.exists():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+
+    if data.get("today_date") != today_str:
+        data["today_date"] = today_str
+        data["seconds_today"] = 0
+        data["claimed_today"] = False
+
+    if data.get("month_key") != month_str:
+        data["month_key"] = month_str
+        data["month_completed_days"] = 0
+
+    goal = int(data.get("daily_goal_minutes") or 10)
+    if goal not in DAILY_GOAL_OPTIONS:
+        goal = 10
+
+    data["daily_goal_minutes"] = goal
+    data["seconds_today"] = int(data.get("seconds_today") or 0)
+    data["claimed_today"] = bool(data.get("claimed_today", False))
+    data["total_stars"] = int(data.get("total_stars") or 0)
+    data["streak_days"] = int(data.get("streak_days") or 0)
+    data["last_claimed_date"] = str(data.get("last_claimed_date") or "")
+    data["month_completed_days"] = int(data.get("month_completed_days") or 0)
+    data["latest_treat"] = str(data.get("latest_treat") or "")
+    return data
+
+
+def _save_study_progress(user_id, data):
+    path = _progress_file(user_id)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _record_study_activity(user_id, min_credit_seconds=0):
+    """Atualiza o tempo ativo de estudo do dia sem provocar reruns que cortem o áudio."""
+    now = time.time()
+    ping_key = f"study_ping_{int(user_id)}"
+    last_ping = st.session_state.get(ping_key)
+    st.session_state[ping_key] = now
+
+    elapsed = 0
+    if last_ping is not None:
+        raw_delta = now - float(last_ping)
+        if 4 <= raw_delta <= 240:
+            elapsed = int(raw_delta)
+
+    credit = max(elapsed, int(min_credit_seconds))
+    if credit <= 0:
+        return
+
+    data = _load_study_progress(user_id)
+    data["seconds_today"] += credit
+    _save_study_progress(user_id, data)
+
+
+def _set_daily_goal(user_id, minutes):
+    data = _load_study_progress(user_id)
+    data["daily_goal_minutes"] = int(minutes)
+    _save_study_progress(user_id, data)
+
+
+def _claim_daily_reward(user_id, avatar_key):
+    data = _load_study_progress(user_id)
+    goal_seconds = data["daily_goal_minutes"] * 60
+
+    if data["claimed_today"] or data["seconds_today"] < goal_seconds:
+        return False
+
+    today = date.today()
+    yesterday_str = (today - timedelta(days=1)).isoformat()
+
+    if data.get("last_claimed_date") == yesterday_str:
+        data["streak_days"] += 1
+    else:
+        data["streak_days"] = 1
+
+    treat_name, treat_note = TUTOR_DAILY_TREATS.get(
+        avatar_key,
+        ("🏅 Medalha de Dedicação", "Seu tutor ficou muito orgulhoso!"),
+    )
+
+    data["claimed_today"] = True
+    data["last_claimed_date"] = today.isoformat()
+    data["total_stars"] += DAILY_REWARD_STARS
+    data["month_completed_days"] += 1
+    data["latest_treat"] = f"{treat_name} — {treat_note}"
+    _save_study_progress(user_id, data)
+    return True
+
+
+def _calculate_discount_info(data):
+    """Calcula o percentual de desconto conquistado no mês e a próxima meta."""
+    days = int(data.get("month_completed_days") or 0)
+    current_discount = 0
+    next_days = None
+    next_discount = None
+
+    for req_days, pct in DISCOUNT_TIERS:
+        if days >= req_days:
+            current_discount = pct
+        elif next_days is None:
+            next_days = req_days
+            next_discount = pct
+
+    final_price = round(PRICE * (1.0 - current_discount / 100.0), 2)
+    return {
+        "days": days,
+        "discount_pct": current_discount,
+        "final_price": final_price,
+        "next_days": next_days,
+        "next_discount": next_discount,
+    }
+
+
+def _format_brl(value):
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 # =========================================================
 # AUTENTICAÇÃO E SESSÃO
 # =========================================================
@@ -520,7 +704,6 @@ def logout():
         "interaction_mode",
         "voice_enabled",
         "autoplay_latest_conv",
-        "autoplay_latest_text",
         "page",
     )
 
@@ -921,13 +1104,7 @@ def _render_voice_button(
     auto_prepare=False,
     autoplay=False,
 ):
-    """Lê a resposta com a voz exclusiva de cada tutor (Gemini TTS) e anima o mascote.
-
-    - Na resposta mais recente (`auto_prepare=True`), o player já aparece pronto
-      (e toca automaticamente quando `autoplay=True`), sem obrigar a criança a clicar.
-    - Nas respostas antigas do histórico (`auto_prepare=False`), mostra um botão
-      discreto para ouvir novamente sob demanda.
-    """
+    """Lê a resposta com a voz exclusiva de cada tutor (Gemini TTS) e anima o mascote."""
     safe_key = re.sub(r"[^a-zA-Z0-9_-]", "_", str(key))
     ready_key = f"voice_ready_{safe_key}"
     tutor_label = AVATARS.get(avatar_key, AVATARS["coruja"])["label"]
@@ -955,7 +1132,6 @@ def _render_voice_button(
 
     svg = PET_SVGS.get(avatar_key, OWL_SVG)
 
-    # Boca animada sincronizada com o volume do áudio WAV do tutor.
     mouth = """
     <ellipse class="ms-talking-mouth"
         cx="50" cy="66" rx="4" ry="2.4"
@@ -1193,6 +1369,9 @@ def _on_subject_change(user_id):
 def show_topbar(user):
     name = html_lib.escape(str(user.get("display_name") or "Aluno"))
     avatar = user_avatar_html(user, 32)
+    progress = _load_study_progress(user["id"])
+    stars = progress["total_stars"]
+    streak = progress["streak_days"]
 
     st.markdown(
         f"""
@@ -1205,7 +1384,9 @@ def show_topbar(user):
                 </div>
             </div>
             <div class="ms-user">
-                <span>🔔</span>
+                <div class="ms-star-pill" title="Estrelas conquistadas e dias seguidos">
+                    ⭐ {stars} &nbsp;·&nbsp; 🔥 {streak}d
+                </div>
                 <div class="ms-user-chip">
                     {avatar}
                     <span>{name}</span>
@@ -1310,7 +1491,7 @@ def show_left_panel(user):
 
 
 # =========================================================
-# PAINEL DIREITO (DISCIPLINA, VOZ, DICA)
+# PAINEL DIREITO (META DE ESTUDOS, RECOMPENSAS, DESCONTO, DISCIPLINA)
 # =========================================================
 
 DAILY_TIPS = [
@@ -1323,26 +1504,120 @@ DAILY_TIPS = [
 
 
 def show_right_panel(user):
-    hero_image = find_asset(("fundo", "background", "biblioteca", "banner", "sala"), avoid=AVATAR_KEYWORDS["coruja"])
+    hero_image = find_asset(
+        ("fundo", "background", "biblioteca", "banner", "sala"),
+        avoid=AVATAR_KEYWORDS["coruja"],
+    )
     hero_style = ""
 
     if hero_image:
         hero_style = (
-            f" style=\"background-image:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.1)),"
+            f" style=\"background-image:linear-gradient(180deg,rgba(255,255,255,.72),rgba(242,248,255,.55)),"
             f"url('{image_data_uri(str(hero_image))}')\""
         )
+
+    avatar_key = user.get("avatar", "cachorro")
+    if avatar_key not in AVATARS:
+        avatar_key = "cachorro"
+
+    progress = _load_study_progress(user["id"])
+    goal_min = progress["daily_goal_minutes"]
+    goal_sec = goal_min * 60
+    studied_sec = progress["seconds_today"]
+    studied_min = min(goal_min, round(studied_sec / 60, 1))
+    studied_min_display = int(studied_min) if studied_min == int(studied_min) else studied_min
+    daily_pct = min(100, int((studied_sec / max(1, goal_sec)) * 100))
+    goal_reached = studied_sec >= goal_sec
+
+    discount_info = _calculate_discount_info(progress)
+    month_days = discount_info["days"]
+    target_days = discount_info["next_days"] or DISCOUNT_TIERS[-1][0]
+    discount_pct_bar = min(100, int((month_days / max(1, target_days)) * 100))
+
+    if discount_info["discount_pct"] > 0:
+        discount_status = (
+            f"🎉 Você já garantiu <b>{discount_info['discount_pct']}% OFF</b> "
+            f"({_format_brl(discount_info['final_price'])}/mês)!"
+        )
+    else:
+        faltam = max(0, 7 - month_days)
+        plural_d = "dia" if faltam == 1 else "dias"
+        discount_status = f"Faltam <b>{faltam} {plural_d}</b> para ganhar 10% OFF na mensalidade."
+
+    if discount_info["next_days"] and discount_info["discount_pct"] > 0:
+        faltam_prox = discount_info["next_days"] - month_days
+        discount_status += f" (+{faltam_prox}d para {discount_info['next_discount']}% OFF)"
 
     st.markdown(
         f"""
         <div class="ms-hero"{hero_style}>
             <h2>Juntos vamos mais longe!</h2>
-            <div class="ms-chip">⭐ Responda perguntas</div>
-            <div class="ms-chip">📖 Aprenda divertindo-se</div>
-            <div class="ms-chip">📈 Acompanhe seu progresso</div>
+            <div class="ms-goal-card">
+                <div class="ms-goal-head">
+                    <span>🎯 Meta de hoje</span>
+                    <span>{studied_min_display} / {goal_min} min</span>
+                </div>
+                <div class="ms-goal-bar">
+                    <div class="ms-goal-fill" style="width:{daily_pct}%"></div>
+                </div>
+                <div class="ms-goal-sub">
+                    {"✅ Meta concluída! Pegue sua recompensa abaixo." if goal_reached and not progress["claimed_today"]
+                     else ("🌟 Recompensa diária já resgatada hoje!" if progress["claimed_today"]
+                           else "Converse com seu tutor para completar o tempo de hoje.")}
+                </div>
+            </div>
+            <div class="ms-goal-card">
+                <div class="ms-goal-head">
+                    <span>👑 Desconto na mensalidade</span>
+                    <span>{month_days} / {target_days} dias</span>
+                </div>
+                <div class="ms-goal-bar">
+                    <div class="ms-goal-fill gold" style="width:{discount_pct_bar}%"></div>
+                </div>
+                <div class="ms-goal-sub">{discount_status}</div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    # Botão de resgate da recompensa diária quando bater a meta
+    if goal_reached and not progress["claimed_today"]:
+        if st.button(
+            f"🎁 Resgatar recompensa de hoje (+{DAILY_REWARD_STARS} ⭐)",
+            key="claim_daily_reward_btn",
+            type="primary",
+            use_container_width=True,
+        ):
+            if _claim_daily_reward(user["id"], avatar_key):
+                st.balloons()
+                st.rerun()
+    elif progress.get("latest_treat") and progress["claimed_today"]:
+        st.markdown(
+            f"<div class='ms-reward-badge'><span>{html_lib.escape(progress['latest_treat'])}</span></div>",
+            unsafe_allow_html=True,
+        )
+
+    # Seletor rápido da meta diária da criança
+    with st.container(border=True):
+        st.markdown(
+            "<div class='ms-section-label'>⏱️ Minha meta diária de estudo</div>",
+            unsafe_allow_html=True,
+        )
+        goal_widget_key = f"daily_goal_select_{user['id']}"
+        st.session_state[goal_widget_key] = goal_min
+
+        def _on_goal_change():
+            _set_daily_goal(user["id"], st.session_state[goal_widget_key])
+
+        st.selectbox(
+            "Meta diária",
+            DAILY_GOAL_OPTIONS,
+            format_func=lambda m: f"⏱️ {m} minutos por dia (+{DAILY_REWARD_STARS} ⭐)",
+            key=goal_widget_key,
+            label_visibility="collapsed",
+            on_change=_on_goal_change,
+        )
 
     slugs = [subject["slug"] for subject in SUBJECTS]
     labels = {
@@ -1461,10 +1736,32 @@ def show_account(user):
     st.divider()
     show_user_avatar_editor(user)
 
+    st.divider()
+    progress = _load_study_progress(user["id"])
+    discount_info = _calculate_discount_info(progress)
+
+    st.subheader("👑 Recompensa de Dedicação (Desconto na Mensalidade)")
+    st.write(
+        f"**Estrelas acumuladas:** ⭐ {progress['total_stars']}  |  "
+        f"**Sequência atual:** 🔥 {progress['streak_days']} dia(s)  |  "
+        f"**Metas batidas neste mês:** 🎯 {discount_info['days']} dia(s)"
+    )
+    st.info(
+        "Regra de incentivo: ao bater a meta diária de estudo por **7 dias no mês**, "
+        "a família ganha **10% de desconto** (R$ 31,50/mês). Ao completar **15 dias no mês**, "
+        "o desconto sobe para **20%** (R$ 28,00/mês)!"
+    )
+
     subscription = get_subscription(user["id"])
 
     if subscription and subscription["status"] == "active":
         st.success("Sua conta está marcada como assinante ativa.")
+
+        if discount_info["discount_pct"] > 0:
+            st.success(
+                f"Desconto ativo pelos estudos da criança: **{discount_info['discount_pct']}% OFF** "
+                f"(valor com desconto: **{_format_brl(discount_info['final_price'])}/mês**)."
+            )
 
         st.caption(
             "No protótipo, o status pode ser ativado em modo de "
@@ -1477,7 +1774,13 @@ def show_account(user):
 
     else:
         st.subheader("Mente Saber Premium")
-        st.markdown("### R$ 35,00 por mês")
+        if discount_info["discount_pct"] > 0:
+            st.markdown(
+                f"### ~~{_format_brl(PRICE)}~~ → **{_format_brl(discount_info['final_price'])} por mês** "
+                f"({discount_info['discount_pct']}% OFF conquistado!)"
+            )
+        else:
+            st.markdown(f"### {_format_brl(PRICE)} por mês")
 
         st.write(
             "Acesso aos tutores com uso sujeito a uma política de uso "
@@ -1693,6 +1996,9 @@ def _chat_box():
 
 
 def show_chat(user):
+    # Registra tempo decorrido desde a última interação na sessão
+    _record_study_activity(user["id"], min_credit_seconds=0)
+
     subject_slug = st.session_state.get(
         "selected_subject",
         SUBJECTS[0]["slug"],
@@ -1931,8 +2237,9 @@ def show_chat(user):
                     conversation_id=active_id,
                 )
 
-                # Pré-gera o áudio imediatamente após o texto para que o tutor
-                # comece a falar sozinho logo em seguida, sem a criança precisar clicar.
+                # Cada rodada completa de estudo/leitura/escuta conta ao menos 60s
+                _record_study_activity(user["id"], min_credit_seconds=60)
+
                 if voice_enabled and source_mode == "ai":
                     voice_prep = st.empty()
                     voice_prep.caption(f"🎙️ {html_lib.escape(str(tutor_name))} preparando a voz...")
@@ -1940,7 +2247,6 @@ def show_chat(user):
                         _cached_tutor_audio(answer, avatar_key)
                         st.session_state["autoplay_latest_conv"] = active_id
                     except Exception:
-                        # O player da última mensagem exibirá o diagnóstico caso falhe.
                         pass
                     finally:
                         voice_prep.empty()
