@@ -332,7 +332,7 @@ _AVATAR_ANCHORS = {
 
 
 def _accessory_svg_layer(avatar_key, accessory_id):
-    """Gera a camada SVG do acessório/skin encaixada nas coordenadas exatas do tutor."""
+    """Gera a camada SVG compacta (sem quebras de linha) do acessório/skin."""
     if not accessory_id or accessory_id == "none":
         return ""
 
@@ -345,121 +345,123 @@ def _accessory_svg_layer(avatar_key, accessory_id):
     sc = a["scale"]
     cy = a["chest_y"]
 
+    raw = ""
+
     if accessory_id == "oculos_nerd":
         lx = 50 - dx
         rx = 50 + dx
         bridge_l = lx + er
         bridge_r = rx - er
-        return f"""
-        <g class="ms-acc-layer">
-            <circle cx="{lx}" cy="{ey}" r="{er}" fill="rgba(224,242,254,0.28)" stroke="#1e293b" stroke-width="{2.2 * sc:.2f}"/>
-            <circle cx="{rx}" cy="{ey}" r="{er}" fill="rgba(224,242,254,0.28)" stroke="#1e293b" stroke-width="{2.2 * sc:.2f}"/>
-            <path d="M{bridge_l} {ey} Q50 {ey - 2 * sc:.1f} {bridge_r} {ey}" fill="none" stroke="#1e293b" stroke-width="{2.2 * sc:.2f}"/>
-            <line x1="{lx - er}" y1="{ey}" x2="{lx - er - 4 * sc:.1f}" y2="{ey - 2 * sc:.1f}" stroke="#1e293b" stroke-width="{2 * sc:.2f}" stroke-linecap="round"/>
-            <line x1="{rx + er}" y1="{ey}" x2="{rx + er + 4 * sc:.1f}" y2="{ey - 2 * sc:.1f}" stroke="#1e293b" stroke-width="{2 * sc:.2f}" stroke-linecap="round"/>
-            <line x1="{lx - er * 0.45:.1f}" y1="{ey - er * 0.35:.1f}" x2="{lx - er * 0.1:.1f}" y2="{ey - er * 0.65:.1f}" stroke="#ffffff" stroke-width="{1.5 * sc:.2f}" stroke-linecap="round" opacity="0.85"/>
-            <line x1="{rx - er * 0.45:.1f}" y1="{ey - er * 0.35:.1f}" x2="{rx - er * 0.1:.1f}" y2="{ey - er * 0.65:.1f}" stroke="#ffffff" stroke-width="{1.5 * sc:.2f}" stroke-linecap="round" opacity="0.85"/>
-        </g>
-        """
+        raw = (
+            f'<g class="ms-acc-layer">'
+            f'<circle cx="{lx}" cy="{ey}" r="{er}" fill="rgba(224,242,254,0.28)" stroke="#1e293b" stroke-width="{2.2 * sc:.2f}"/>'
+            f'<circle cx="{rx}" cy="{ey}" r="{er}" fill="rgba(224,242,254,0.28)" stroke="#1e293b" stroke-width="{2.2 * sc:.2f}"/>'
+            f'<path d="M{bridge_l} {ey} Q50 {ey - 2 * sc:.1f} {bridge_r} {ey}" fill="none" stroke="#1e293b" stroke-width="{2.2 * sc:.2f}"/>'
+            f'<line x1="{lx - er}" y1="{ey}" x2="{lx - er - 4 * sc:.1f}" y2="{ey - 2 * sc:.1f}" stroke="#1e293b" stroke-width="{2 * sc:.2f}" stroke-linecap="round"/>'
+            f'<line x1="{rx + er}" y1="{ey}" x2="{rx + er + 4 * sc:.1f}" y2="{ey - 2 * sc:.1f}" stroke="#1e293b" stroke-width="{2 * sc:.2f}" stroke-linecap="round"/>'
+            f'<line x1="{lx - er * 0.45:.1f}" y1="{ey - er * 0.35:.1f}" x2="{lx - er * 0.1:.1f}" y2="{ey - er * 0.65:.1f}" stroke="#ffffff" stroke-width="{1.5 * sc:.2f}" stroke-linecap="round" opacity="0.85"/>'
+            f'<line x1="{rx - er * 0.45:.1f}" y1="{ey - er * 0.35:.1f}" x2="{rx - er * 0.1:.1f}" y2="{ey - er * 0.65:.1f}" stroke="#ffffff" stroke-width="{1.5 * sc:.2f}" stroke-linecap="round" opacity="0.85"/>'
+            f'</g>'
+        )
 
-    if accessory_id == "coroa_real":
+    elif accessory_id == "coroa_real":
         w = 26 * sc
         h = 15 * sc
         base_y = hy + 2 * sc
         top_y = base_y - h
         mid_y = base_y - h * 0.55
-        return f"""
-        <g class="ms-acc-layer">
-            <path d="M{50 - w / 2:.1f} {base_y:.1f} L{50 - w * 0.55:.1f} {top_y + 2 * sc:.1f} L{50 - w * 0.22:.1f} {mid_y:.1f} L50 {top_y:.1f} L{50 + w * 0.22:.1f} {mid_y:.1f} L{50 + w * 0.55:.1f} {top_y + 2 * sc:.1f} L{50 + w / 2:.1f} {base_y:.1f} Z"
-                  fill="#fbbf24" stroke="#b45309" stroke-width="{1.6 * sc:.2f}" stroke-linejoin="round"/>
-            <rect x="{50 - w / 2:.1f}" y="{base_y - 3.2 * sc:.1f}" width="{w:.1f}" height="{3.4 * sc:.1f}" rx="{1.5 * sc:.1f}" fill="#f59e0b" stroke="#b45309" stroke-width="{1.3 * sc:.2f}"/>
-            <circle cx="50" cy="{base_y - 1.6 * sc:.1f}" r="{1.6 * sc:.1f}" fill="#ef4444"/>
-            <circle cx="{50 - w * 0.3:.1f}" cy="{base_y - 1.6 * sc:.1f}" r="{1.3 * sc:.1f}" fill="#3b82f6"/>
-            <circle cx="{50 + w * 0.3:.1f}" cy="{base_y - 1.6 * sc:.1f}" r="{1.3 * sc:.1f}" fill="#10b981"/>
-        </g>
-        """
+        raw = (
+            f'<g class="ms-acc-layer">'
+            f'<path d="M{50 - w / 2:.1f} {base_y:.1f} L{50 - w * 0.55:.1f} {top_y + 2 * sc:.1f} L{50 - w * 0.22:.1f} {mid_y:.1f} L50 {top_y:.1f} L{50 + w * 0.22:.1f} {mid_y:.1f} L{50 + w * 0.55:.1f} {top_y + 2 * sc:.1f} L{50 + w / 2:.1f} {base_y:.1f} Z" '
+            f'fill="#fbbf24" stroke="#b45309" stroke-width="{1.6 * sc:.2f}" stroke-linejoin="round"/>'
+            f'<rect x="{50 - w / 2:.1f}" y="{base_y - 3.2 * sc:.1f}" width="{w:.1f}" height="{3.4 * sc:.1f}" rx="{1.5 * sc:.1f}" fill="#f59e0b" stroke="#b45309" stroke-width="{1.3 * sc:.2f}"/>'
+            f'<circle cx="50" cy="{base_y - 1.6 * sc:.1f}" r="{1.6 * sc:.1f}" fill="#ef4444"/>'
+            f'<circle cx="{50 - w * 0.3:.1f}" cy="{base_y - 1.6 * sc:.1f}" r="{1.3 * sc:.1f}" fill="#3b82f6"/>'
+            f'<circle cx="{50 + w * 0.3:.1f}" cy="{base_y - 1.6 * sc:.1f}" r="{1.3 * sc:.1f}" fill="#10b981"/>'
+            f'</g>'
+        )
 
-    if accessory_id == "chapeu_mago":
+    elif accessory_id == "chapeu_mago":
         brim_rx = 22 * sc
         brim_ry = 4.5 * sc
         base_y = hy + 2 * sc
         tip_y = max(2.0, base_y - 24 * sc)
-        return f"""
-        <g class="ms-acc-layer">
-            <ellipse cx="50" cy="{base_y:.1f}" rx="{brim_rx:.1f}" ry="{brim_ry:.1f}" fill="#312e81" stroke="#1e1b4b" stroke-width="{1.6 * sc:.2f}"/>
-            <path d="M{50 - 13 * sc:.1f} {base_y:.1f} Q48 {base_y - 13 * sc:.1f} {50 + 5 * sc:.1f} {tip_y:.1f} Q{50 + 11 * sc:.1f} {base_y - 11 * sc:.1f} {50 + 13 * sc:.1f} {base_y:.1f} Z"
-                  fill="#4338ca" stroke="#1e1b4b" stroke-width="{1.6 * sc:.2f}" stroke-linejoin="round"/>
-            <path d="M{50 - 12.2 * sc:.1f} {base_y - 1.5 * sc:.1f} Q50 {base_y + 1.2 * sc:.1f} {50 + 12.2 * sc:.1f} {base_y - 1.5 * sc:.1f}"
-                  fill="none" stroke="#fbbf24" stroke-width="{2.6 * sc:.2f}" stroke-linecap="round"/>
-            <circle cx="{50 - 2 * sc:.1f}" cy="{base_y - 9 * sc:.1f}" r="{1.6 * sc:.1f}" fill="#fde047"/>
-            <circle cx="{50 + 4 * sc:.1f}" cy="{base_y - 14 * sc:.1f}" r="{1.3 * sc:.1f}" fill="#fde047"/>
-            <circle cx="{50 - 5 * sc:.1f}" cy="{base_y - 15 * sc:.1f}" r="{1.1 * sc:.1f}" fill="#fef08a"/>
-        </g>
-        """
+        raw = (
+            f'<g class="ms-acc-layer">'
+            f'<ellipse cx="50" cy="{base_y:.1f}" rx="{brim_rx:.1f}" ry="{brim_ry:.1f}" fill="#312e81" stroke="#1e1b4b" stroke-width="{1.6 * sc:.2f}"/>'
+            f'<path d="M{50 - 13 * sc:.1f} {base_y:.1f} Q48 {base_y - 13 * sc:.1f} {50 + 5 * sc:.1f} {tip_y:.1f} Q{50 + 11 * sc:.1f} {base_y - 11 * sc:.1f} {50 + 13 * sc:.1f} {base_y:.1f} Z" '
+            f'fill="#4338ca" stroke="#1e1b4b" stroke-width="{1.6 * sc:.2f}" stroke-linejoin="round"/>'
+            f'<path d="M{50 - 12.2 * sc:.1f} {base_y - 1.5 * sc:.1f} Q50 {base_y + 1.2 * sc:.1f} {50 + 12.2 * sc:.1f} {base_y - 1.5 * sc:.1f}" '
+            f'fill="none" stroke="#fbbf24" stroke-width="{2.6 * sc:.2f}" stroke-linecap="round"/>'
+            f'<circle cx="{50 - 2 * sc:.1f}" cy="{base_y - 9 * sc:.1f}" r="{1.6 * sc:.1f}" fill="#fde047"/>'
+            f'<circle cx="{50 + 4 * sc:.1f}" cy="{base_y - 14 * sc:.1f}" r="{1.3 * sc:.1f}" fill="#fde047"/>'
+            f'<circle cx="{50 - 5 * sc:.1f}" cy="{base_y - 15 * sc:.1f}" r="{1.1 * sc:.1f}" fill="#fef08a"/>'
+            f'</g>'
+        )
 
-    if accessory_id == "fone_gamer":
+    elif accessory_id == "fone_gamer":
         arc_r = hr + 2 * sc
         ear_w = 6.5 * sc
         ear_h = 13 * sc
-        return f"""
-        <g class="ms-acc-layer">
-            <path d="M{50 - arc_r:.1f} {ey:.1f} A{arc_r:.1f} {arc_r:.1f} 0 0 1 {50 + arc_r:.1f} {ey:.1f}"
-                  fill="none" stroke="#0f172a" stroke-width="{3.4 * sc:.2f}" stroke-linecap="round"/>
-            <path d="M{50 - arc_r:.1f} {ey:.1f} A{arc_r:.1f} {arc_r:.1f} 0 0 1 {50 + arc_r:.1f} {ey:.1f}"
-                  fill="none" stroke="#38bdf8" stroke-width="{1.4 * sc:.2f}" stroke-linecap="round"/>
-            <rect x="{50 - arc_r - ear_w * 0.6:.1f}" y="{ey - ear_h / 2:.1f}" width="{ear_w:.1f}" height="{ear_h:.1f}" rx="{3 * sc:.1f}"
-                  fill="#2563eb" stroke="#0f172a" stroke-width="{1.6 * sc:.2f}"/>
-            <rect x="{50 + arc_r - ear_w * 0.4:.1f}" y="{ey - ear_h / 2:.1f}" width="{ear_w:.1f}" height="{ear_h:.1f}" rx="{3 * sc:.1f}"
-                  fill="#2563eb" stroke="#0f172a" stroke-width="{1.6 * sc:.2f}"/>
-            <circle cx="{50 - arc_r - ear_w * 0.1:.1f}" cy="{ey:.1f}" r="{1.8 * sc:.1f}" fill="#38bdf8"/>
-            <circle cx="{50 + arc_r + ear_w * 0.1:.1f}" cy="{ey:.1f}" r="{1.8 * sc:.1f}" fill="#38bdf8"/>
-        </g>
-        """
+        raw = (
+            f'<g class="ms-acc-layer">'
+            f'<path d="M{50 - arc_r:.1f} {ey:.1f} A{arc_r:.1f} {arc_r:.1f} 0 0 1 {50 + arc_r:.1f} {ey:.1f}" '
+            f'fill="none" stroke="#0f172a" stroke-width="{3.4 * sc:.2f}" stroke-linecap="round"/>'
+            f'<path d="M{50 - arc_r:.1f} {ey:.1f} A{arc_r:.1f} {arc_r:.1f} 0 0 1 {50 + arc_r:.1f} {ey:.1f}" '
+            f'fill="none" stroke="#38bdf8" stroke-width="{1.4 * sc:.2f}" stroke-linecap="round"/>'
+            f'<rect x="{50 - arc_r - ear_w * 0.6:.1f}" y="{ey - ear_h / 2:.1f}" width="{ear_w:.1f}" height="{ear_h:.1f}" rx="{3 * sc:.1f}" '
+            f'fill="#2563eb" stroke="#0f172a" stroke-width="{1.6 * sc:.2f}"/>'
+            f'<rect x="{50 + arc_r - ear_w * 0.4:.1f}" y="{ey - ear_h / 2:.1f}" width="{ear_w:.1f}" height="{ear_h:.1f}" rx="{3 * sc:.1f}" '
+            f'fill="#2563eb" stroke="#0f172a" stroke-width="{1.6 * sc:.2f}"/>'
+            f'<circle cx="{50 - arc_r - ear_w * 0.1:.1f}" cy="{ey:.1f}" r="{1.8 * sc:.1f}" fill="#38bdf8"/>'
+            f'<circle cx="{50 + arc_r + ear_w * 0.1:.1f}" cy="{ey:.1f}" r="{1.8 * sc:.1f}" fill="#38bdf8"/>'
+            f'</g>'
+        )
 
-    if accessory_id == "super_heroi":
-        mask_w = (dx + er * 0.85)
+    elif accessory_id == "super_heroi":
+        mask_w = dx + er * 0.85
         mask_h = er * 0.95
         lx = 50 - dx
         rx = 50 + dx
         hole_r = max(2.2, er * 0.52)
-        return f"""
-        <g class="ms-acc-layer">
-            <rect x="{50 - mask_w:.1f}" y="{ey - mask_h / 2:.1f}" width="{mask_w * 2:.1f}" height="{mask_h:.1f}" rx="{mask_h / 2:.1f}"
-                  fill="#dc2626" stroke="#7f1d1d" stroke-width="{1.4 * sc:.2f}"/>
-            <circle cx="{lx}" cy="{ey}" r="{hole_r:.1f}" fill="#ffffff"/>
-            <circle cx="{rx}" cy="{ey}" r="{hole_r:.1f}" fill="#ffffff"/>
-            <circle cx="{lx + 0.6 * sc:.1f}" cy="{ey + 0.4 * sc:.1f}" r="{hole_r * 0.52:.1f}" fill="#1e293b"/>
-            <circle cx="{rx - 0.6 * sc:.1f}" cy="{ey + 0.4 * sc:.1f}" r="{hole_r * 0.52:.1f}" fill="#1e293b"/>
-            <polygon points="50,{cy - 6 * sc:.1f} {50 + 2.2 * sc:.1f},{cy - 1.5 * sc:.1f} {50 + 7 * sc:.1f},{cy - 1.5 * sc:.1f} {50 + 3.2 * sc:.1f},{cy + 1.5 * sc:.1f} {50 + 4.6 * sc:.1f},{cy + 6 * sc:.1f} 50,{cy + 3.2 * sc:.1f} {50 - 4.6 * sc:.1f},{cy + 6 * sc:.1f} {50 - 3.2 * sc:.1f},{cy + 1.5 * sc:.1f} {50 - 7 * sc:.1f},{cy - 1.5 * sc:.1f} {50 - 2.2 * sc:.1f},{cy - 1.5 * sc:.1f}"
-                     fill="#facc15" stroke="#b45309" stroke-width="{1.1 * sc:.2f}"/>
-        </g>
-        """
+        raw = (
+            f'<g class="ms-acc-layer">'
+            f'<rect x="{50 - mask_w:.1f}" y="{ey - mask_h / 2:.1f}" width="{mask_w * 2:.1f}" height="{mask_h:.1f}" rx="{mask_h / 2:.1f}" '
+            f'fill="#dc2626" stroke="#7f1d1d" stroke-width="{1.4 * sc:.2f}"/>'
+            f'<circle cx="{lx}" cy="{ey}" r="{hole_r:.1f}" fill="#ffffff"/>'
+            f'<circle cx="{rx}" cy="{ey}" r="{hole_r:.1f}" fill="#ffffff"/>'
+            f'<circle cx="{lx + 0.6 * sc:.1f}" cy="{ey + 0.4 * sc:.1f}" r="{hole_r * 0.52:.1f}" fill="#1e293b"/>'
+            f'<circle cx="{rx - 0.6 * sc:.1f}" cy="{ey + 0.4 * sc:.1f}" r="{hole_r * 0.52:.1f}" fill="#1e293b"/>'
+            f'<polygon points="50,{cy - 6 * sc:.1f} {50 + 2.2 * sc:.1f},{cy - 1.5 * sc:.1f} {50 + 7 * sc:.1f},{cy - 1.5 * sc:.1f} {50 + 3.2 * sc:.1f},{cy + 1.5 * sc:.1f} {50 + 4.6 * sc:.1f},{cy + 6 * sc:.1f} 50,{cy + 3.2 * sc:.1f} {50 - 4.6 * sc:.1f},{cy + 6 * sc:.1f} {50 - 3.2 * sc:.1f},{cy + 1.5 * sc:.1f} {50 - 7 * sc:.1f},{cy - 1.5 * sc:.1f} {50 - 2.2 * sc:.1f},{cy - 1.5 * sc:.1f}" '
+            f'fill="#facc15" stroke="#b45309" stroke-width="{1.1 * sc:.2f}"/>'
+            f'</g>'
+        )
 
-    if accessory_id == "astronauta":
+    elif accessory_id == "astronauta":
         dome_cx = 50
         dome_cy = (hy + ey) / 2 + 4 * sc
         dome_r = hr + 6 * sc
         collar_y = dome_cy + dome_r * 0.82
-        return f"""
-        <g class="ms-acc-layer">
-            <line x1="50" y1="{max(2.0, dome_cy - dome_r):.1f}" x2="50" y2="{max(1.0, dome_cy - dome_r - 6 * sc):.1f}"
-                  stroke="#94a3b8" stroke-width="{2 * sc:.2f}" stroke-linecap="round"/>
-            <circle cx="50" cy="{max(2.0, dome_cy - dome_r - 6 * sc):.1f}" r="{2.2 * sc:.1f}" fill="#38bdf8"/>
-            <circle cx="{dome_cx}" cy="{dome_cy:.1f}" r="{dome_r:.1f}"
-                    fill="rgba(186,230,253,0.24)" stroke="#38bdf8" stroke-width="{2.4 * sc:.2f}"/>
-            <path d="M{dome_cx - dome_r * 0.55:.1f} {dome_cy - dome_r * 0.45:.1f} A{dome_r * 0.72:.1f} {dome_r * 0.72:.1f} 0 0 1 {dome_cx - dome_r * 0.1:.1f} {dome_cy - dome_r * 0.72:.1f}"
-                  fill="none" stroke="#ffffff" stroke-width="{2.2 * sc:.2f}" stroke-linecap="round" opacity="0.85"/>
-            <rect x="{dome_cx - dome_r * 0.72:.1f}" y="{collar_y - 2.5 * sc:.1f}" width="{dome_r * 1.44:.1f}" height="{5 * sc:.1f}" rx="{2.5 * sc:.1f}"
-                  fill="#f8fafc" stroke="#64748b" stroke-width="{1.5 * sc:.2f}"/>
-        </g>
-        """
+        raw = (
+            f'<g class="ms-acc-layer">'
+            f'<line x1="50" y1="{max(2.0, dome_cy - dome_r):.1f}" x2="50" y2="{max(1.0, dome_cy - dome_r - 6 * sc):.1f}" '
+            f'stroke="#94a3b8" stroke-width="{2 * sc:.2f}" stroke-linecap="round"/>'
+            f'<circle cx="50" cy="{max(2.0, dome_cy - dome_r - 6 * sc):.1f}" r="{2.2 * sc:.1f}" fill="#38bdf8"/>'
+            f'<circle cx="{dome_cx}" cy="{dome_cy:.1f}" r="{dome_r:.1f}" '
+            f'fill="rgba(186,230,253,0.24)" stroke="#38bdf8" stroke-width="{2.4 * sc:.2f}"/>'
+            f'<path d="M{dome_cx - dome_r * 0.55:.1f} {dome_cy - dome_r * 0.45:.1f} A{dome_r * 0.72:.1f} {dome_r * 0.72:.1f} 0 0 1 {dome_cx - dome_r * 0.1:.1f} {dome_cy - dome_r * 0.72:.1f}" '
+            f'fill="none" stroke="#ffffff" stroke-width="{2.2 * sc:.2f}" stroke-linecap="round" opacity="0.85"/>'
+            f'<rect x="{dome_cx - dome_r * 0.72:.1f}" y="{collar_y - 2.5 * sc:.1f}" width="{dome_r * 1.44:.1f}" height="{5 * sc:.1f}" rx="{2.5 * sc:.1f}" '
+            f'fill="#f8fafc" stroke="#64748b" stroke-width="{1.5 * sc:.2f}"/>'
+            f'</g>'
+        )
 
-    return ""
+    return re.sub(r"\s+", " ", raw).strip()
 
 
 def tutor_svg(avatar_key, accessory_id="none"):
-    """Retorna o SVG completo do tutor vestido com o acessório/skin escolhido."""
-    base = PET_SVGS.get(avatar_key, OWL_SVG)
+    """Retorna o SVG compacto do tutor vestido com o acessório/skin escolhido."""
+    base = re.sub(r"\s+", " ", PET_SVGS.get(avatar_key, OWL_SVG)).strip()
     layer = _accessory_svg_layer(avatar_key, accessory_id)
     if not layer:
         return base
@@ -583,10 +585,13 @@ div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock
 .ms-section-label { font-size: .86rem; font-weight: 700; color: var(--ms-muted) !important; margin: 4px 0 8px; }
 
 /* ---------- Avatares ---------- */
-.ms-avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; background: #eaf2ff; border: 2px solid #fff; box-shadow: 0 3px 10px rgba(28,52,110,.15); }
+.ms-avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; background: #eaf2ff; border: 2px solid #fff; box-shadow: 0 3px 10px rgba(28,52,110,.15); overflow: hidden; flex-shrink: 0; }
 .ms-avatar-emoji { display: inline-grid; place-items: center; font-size: 1.6rem; }
+.ms-avatar svg { width: 36px; height: 36px; max-width: 100%; max-height: 100%; }
 .ms-avatar-lg { width: 62px; height: 62px; }
+.ms-avatar-lg svg { width: 48px; height: 48px; }
 .ms-avatar-xl { width: 112px; height: 112px; background: radial-gradient(circle at 30% 30%, #ffffff, #dbeafe); border: 3px solid #93c5fd; }
+.ms-avatar-xl svg { width: 88px; height: 88px; }
 
 /* ---------- Cabeçalho do chat ---------- */
 .ms-chat-head {
@@ -677,7 +682,7 @@ div[data-testid="stChatInput"] button { background: linear-gradient(135deg,#4f8c
 .ms-welcome { font-size: .95rem; }
 
 /* ---------- Borboleta animada ---------- */
-.ms-bf { width: 74%; height: 74%; animation: ms-bf-float 2.6s ease-in-out infinite; overflow: visible; }
+.ms-bf { animation: ms-bf-float 2.6s ease-in-out infinite; overflow: visible; }
 .ms-bf-wings { transform-origin: 50px 50px; animation: ms-bf-flap .7s ease-in-out infinite alternate; }
 @keyframes ms-bf-flap { from { transform: scaleX(1); } to { transform: scaleX(.3); } }
 @keyframes ms-bf-float {
@@ -687,7 +692,7 @@ div[data-testid="stChatInput"] button { background: linear-gradient(135deg,#4f8c
 @media (prefers-reduced-motion: reduce) { .ms-bf, .ms-bf-wings { animation: none; } }
 
 /* ---------- Animais animados ---------- */
-.ms-pet { width: 78%; height: 78%; overflow: visible; animation: ms-bf-float 2.8s ease-in-out infinite; }
+.ms-pet { overflow: visible; animation: ms-bf-float 2.8s ease-in-out infinite; }
 .ms-blink { animation: ms-blink 4.2s infinite; }
 @keyframes ms-blink { 0%, 90%, 100% { transform: scaleY(1); } 94% { transform: scaleY(.08); } }
 
@@ -1381,11 +1386,7 @@ def _render_voice_button(
 
     svg = tutor_svg(avatar_key, accessory_id)
 
-    mouth = """
-    <ellipse class="ms-talking-mouth"
-        cx="50" cy="66" rx="4" ry="2.4"
-        fill="#713b46" stroke="#512b34" stroke-width="0.7"/>
-    """
+    mouth = '<ellipse class="ms-talking-mouth" cx="50" cy="66" rx="4" ry="2.4" fill="#713b46" stroke="#512b34" stroke-width="0.7"/>'
     svg = svg.replace("</svg>", mouth + "</svg>")
 
     manual_autoplay = st.session_state.get("voice_autoplay_key") == safe_key
@@ -1623,26 +1624,14 @@ def show_topbar(user):
     streak = progress["streak_days"]
 
     st.markdown(
-        f"""
-        <div class="ms-topbar">
-            <div class="ms-brand">
-                <div class="ms-logo">🧠</div>
-                <div>
-                    <div class="ms-brand-name">Mente <b>Saber</b></div>
-                    <div class="ms-brand-tag">Aprender hoje, conquistar amanhã!</div>
-                </div>
-            </div>
-            <div class="ms-user">
-                <div class="ms-star-pill" title="Estrelas conquistadas e dias seguidos">
-                    ⭐ {stars} &nbsp;·&nbsp; 🔥 {streak}d
-                </div>
-                <div class="ms-user-chip">
-                    {avatar}
-                    <span>{name}</span>
-                </div>
-            </div>
-        </div>
-        """,
+        f'<div class="ms-topbar">'
+        f'<div class="ms-brand"><div class="ms-logo">🧠</div>'
+        f'<div><div class="ms-brand-name">Mente <b>Saber</b></div>'
+        f'<div class="ms-brand-tag">Aprender hoje, conquistar amanhã!</div></div></div>'
+        f'<div class="ms-user">'
+        f'<div class="ms-star-pill" title="Estrelas conquistadas e dias seguidos">⭐ {stars} &nbsp;·&nbsp; 🔥 {streak}d</div>'
+        f'<div class="ms-user-chip">{avatar}<span>{name}</span></div>'
+        f'</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -1801,36 +1790,30 @@ def show_right_panel(user):
         faltam_prox = discount_info["next_days"] - month_days
         discount_status += f" (+{faltam_prox}d para {discount_info['next_discount']}% OFF)"
 
+    daily_sub = (
+        "✅ Meta concluída! Pegue sua recompensa abaixo."
+        if goal_reached and not progress["claimed_today"]
+        else (
+            "🌟 Recompensa diária já resgatada hoje!"
+            if progress["claimed_today"]
+            else "Converse com seu tutor para completar o tempo de hoje."
+        )
+    )
+
     st.markdown(
-        f"""
-        <div class="ms-hero"{hero_style}>
-            <h2>Juntos vamos mais longe!</h2>
-            <div class="ms-goal-card">
-                <div class="ms-goal-head">
-                    <span>🎯 Meta de hoje</span>
-                    <span>{studied_min_display} / {goal_min} min</span>
-                </div>
-                <div class="ms-goal-bar">
-                    <div class="ms-goal-fill" style="width:{daily_pct}%"></div>
-                </div>
-                <div class="ms-goal-sub">
-                    {"✅ Meta concluída! Pegue sua recompensa abaixo." if goal_reached and not progress["claimed_today"]
-                     else ("🌟 Recompensa diária já resgatada hoje!" if progress["claimed_today"]
-                           else "Converse com seu tutor para completar o tempo de hoje.")}
-                </div>
-            </div>
-            <div class="ms-goal-card">
-                <div class="ms-goal-head">
-                    <span>👑 Desconto na mensalidade</span>
-                    <span>{month_days} / {target_days} dias</span>
-                </div>
-                <div class="ms-goal-bar">
-                    <div class="ms-goal-fill gold" style="width:{discount_pct_bar}%"></div>
-                </div>
-                <div class="ms-goal-sub">{discount_status}</div>
-            </div>
-        </div>
-        """,
+        f'<div class="ms-hero"{hero_style}>'
+        f'<h2>Juntos vamos mais longe!</h2>'
+        f'<div class="ms-goal-card">'
+        f'<div class="ms-goal-head"><span>🎯 Meta de hoje</span><span>{studied_min_display} / {goal_min} min</span></div>'
+        f'<div class="ms-goal-bar"><div class="ms-goal-fill" style="width:{daily_pct}%"></div></div>'
+        f'<div class="ms-goal-sub">{daily_sub}</div>'
+        f'</div>'
+        f'<div class="ms-goal-card">'
+        f'<div class="ms-goal-head"><span>👑 Desconto na mensalidade</span><span>{month_days} / {target_days} dias</span></div>'
+        f'<div class="ms-goal-bar"><div class="ms-goal-fill gold" style="width:{discount_pct_bar}%"></div></div>'
+        f'<div class="ms-goal-sub">{discount_status}</div>'
+        f'</div>'
+        f'</div>',
         unsafe_allow_html=True,
     )
 
@@ -1961,20 +1944,19 @@ def show_shop(user):
 
         with cols[idx % 3]:
             with st.container(border=True):
+                preview_html = avatar_html(selected_tutor, "ms-avatar ms-avatar-xl", accessory_id=item_id)
                 st.markdown(
-                    f"<div style='text-align:center;padding:6px 0 4px'>"
-                    f"{avatar_html(selected_tutor, 'ms-avatar ms-avatar-xl', accessory_id=item_id)}"
-                    f"</div>",
+                    f'<div style="text-align:center;padding:6px 0 4px">{preview_html}</div>',
                     unsafe_allow_html=True,
                 )
                 st.markdown(
-                    f"<div style='text-align:center;font-weight:800;font-size:1.02rem;margin-top:4px'>"
-                    f"{item['emoji']} {html_lib.escape(item['name'])}</div>",
+                    f'<div style="text-align:center;font-weight:800;font-size:1.02rem;margin-top:4px">'
+                    f'{item["emoji"]} {html_lib.escape(item["name"])}</div>',
                     unsafe_allow_html=True,
                 )
                 st.markdown(
-                    f"<div style='text-align:center;font-size:.82rem;color:#5C6880;min-height:36px;margin:4px 0 8px'>"
-                    f"{html_lib.escape(item['desc'])}</div>",
+                    f'<div style="text-align:center;font-size:.82rem;color:#5C6880;min-height:36px;margin:4px 0 8px">'
+                    f'{html_lib.escape(item["desc"])}</div>',
                     unsafe_allow_html=True,
                 )
 
@@ -2428,16 +2410,12 @@ def show_chat(user):
     remaining = max(0, FREE_QUESTIONS - used)
 
     with st.container(border=True):
+        head_avatar = avatar_html(avatar_key, "ms-avatar ms-avatar-lg", accessory_id=equipped_accessory)
         st.markdown(
-            f"""
-            <div class="ms-chat-head">
-                {avatar_html(avatar_key, "ms-avatar ms-avatar-lg", accessory_id=equipped_accessory)}
-                <div>
-                    <div class="ms-chat-name">{html_lib.escape(tutor_name)}</div>
-                    <div class="ms-chat-sub">{html_lib.escape(tutor_species)} · {html_lib.escape(subject['name'])}</div>
-                </div>
-            </div>
-            """,
+            f'<div class="ms-chat-head">{head_avatar}'
+            f'<div><div class="ms-chat-name">{html_lib.escape(tutor_name)}</div>'
+            f'<div class="ms-chat-sub">{html_lib.escape(tutor_species)} · {html_lib.escape(subject["name"])}</div>'
+            f'</div></div>',
             unsafe_allow_html=True,
         )
 
