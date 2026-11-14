@@ -2671,17 +2671,6 @@ def show_chat(user):
         }[interaction_mode]
 
         voice_enabled = bool(st.session_state.get("voice_enabled", True))
-        last_assistant_idx = max(
-            (idx for idx, msg in enumerate(history) if msg["role"] == "assistant"),
-            default=-1,
-        )
-
-        should_autoplay_latest = (
-            st.session_state.get("autoplay_latest_conv") == active_id
-        )
-        if should_autoplay_latest:
-            st.session_state.pop("autoplay_latest_conv", None)
-
         box = _chat_box()
 
         with box:
@@ -2689,9 +2678,8 @@ def show_chat(user):
                 with st.chat_message("assistant", avatar=tutor_avatar):
                     st.markdown(welcome)
 
-            for idx, item in enumerate(history):
+            for item in history:
                 is_assistant = item["role"] == "assistant"
-                is_latest_reply = is_assistant and (idx == last_assistant_idx)
 
                 with st.chat_message(
                     item["role"],
@@ -2707,8 +2695,10 @@ def show_chat(user):
                             avatar_key=avatar_key,
                             accessory_id=equipped_accessory,
                             language="en-US" if is_english_subject(subject) else "pt-BR",
-                            auto_prepare=is_latest_reply,
-                            autoplay=is_latest_reply and should_autoplay_latest,
+                            # O áudio só será preparado após o usuário clicar.
+                            # A resposta textual não deve aguardar a síntese de voz.
+                            auto_prepare=False,
+                            autoplay=False,
                         )
 
         if not is_subscriber and remaining <= 0:
@@ -2819,16 +2809,10 @@ def show_chat(user):
                 # Cada rodada completa de estudo/leitura/escuta conta ao menos 60s
                 _record_study_activity(user["id"], min_credit_seconds=60)
 
-                if voice_enabled and source_mode == "ai":
-                    voice_prep = st.empty()
-                    voice_prep.caption(f"🎙️ {html_lib.escape(str(tutor_name))} preparando a voz...")
-                    try:
-                        _cached_tutor_audio(answer, avatar_key)
-                        st.session_state["autoplay_latest_conv"] = active_id
-                    except Exception:
-                        pass
-                    finally:
-                        voice_prep.empty()
+                # IMPORTANTE: não gerar o áudio neste ponto.
+                # A resposta da IA já está pronta e salva; a síntese de voz
+                # fica separada e só acontece quando o usuário clicar em
+                # "Ouvir novamente" na mensagem correspondente.
 
         st.rerun()
 
